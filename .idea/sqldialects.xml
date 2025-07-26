@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/aoe4Forum/aoe4Forum-common/src/main/resources/com/aoe4Forum/mapper/FollowRelationMapper.xml" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/aoe4Forum/aoe4Forum-common/src/main/resources/com/aoe4Forum/mapper/PostContentMapper.xml" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/aoe4Forum/aoe4Forum-common/src/main/resources/com/aoe4Forum/mapper/UserMapper.xml" dialect="MySQL" />
+    <file url="PROJECT" dialect="MySQL" />
+  </component>
+</project>

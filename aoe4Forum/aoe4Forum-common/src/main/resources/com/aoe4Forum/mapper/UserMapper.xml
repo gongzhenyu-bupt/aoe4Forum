@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--
+    mapper为映射的根节点，用来管理DAO接口
+    namespace指定DAO接口的完整类名，表示mapper配置文件管理哪个DAO接口(包.接口名)
+    mybatis会依据这个接口动态创建一个实现类去实现这个接口，而这个实现类是一个Mapper对象
+ -->
+<mapper namespace="com.aoe4Forum.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.aoe4Forum.entity.User">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="password" column="password" />
+        <result property="phoneNo" column="phone_no" />
+        <result property="role" column="role" />
+        <result property="personIntroduction" column="person_introduction" />
+        <result property="joinTime" column="join_time" />
+        <result property="lastLoginTime" column="last_login_time" />
+        <result property="lastLoginIp" column="last_login_ip" />
+        <result property="status" column="status" />
+        <result property="exp" column="exp" />
+        <result property="avatar" column="avatar" />
+        <result column="follower_nums" property="followerNums"/>
+        <result column="followee_nums" property="followeeNums"/>
+    </resultMap>
+
+
+    <!-- 查询：根据 ID -->
+    <select id="queryById" resultMap="UserResultMap" parameterType="long">
+        SELECT * FROM users WHERE id = #{id}
+    </select>
+
+    <select id="batchQueryById" resultMap="UserResultMap" parameterType="list">
+        SELECT * FROM users
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="queryByName" resultMap="UserResultMap" parameterType="String">
+        SELECT * FROM users WHERE name = #{name}
+    </select>
+
+    <select id="queryByPhoneNo" resultMap="UserResultMap" parameterType="String">
+        SELECT * FROM users WHERE phone_no = #{PhoneNo}
+    </select>
+
+    <select id="checkDuplicate" parameterType="com.aoe4Forum.entity.User" resultType="map">
+        SELECT
+            CASE WHEN COUNT(*) > 0 THEN
+                     MAX(CASE WHEN name = #{name} THEN 'name' END)
+                END AS duplicateName,
+            MAX(CASE WHEN phone_no = #{phoneNo} THEN 'phoneNo' END) AS duplicatePhoneNo
+        FROM users
+        WHERE name = #{name} OR phone_no = #{phoneNo}
+    </select>
+
+    <!-- 插入：自动生成 ID -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="com.aoe4Forum.entity.User">
+        INSERT INTO users (
+            name, password, phone_no, role, person_introduction,
+            join_time, last_login_time, last_login_ip, status, exp,avatar,followee_nums,follower_nums
+        ) VALUES (
+                     #{name}, #{password}, #{phoneNo}, #{role}, #{personIntroduction},
+                     #{joinTime}, #{lastLoginTime}, #{lastLoginIp}, #{status}, #{exp},#{avatar},#{followeeNums},#{followerNums}
+                 )
+    </insert>
+
+    <!-- 更新：根据 ID 修改 -->
+    <update id="updateById" parameterType="com.aoe4Forum.entity.User">
+        UPDATE users
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="phoneNo != null">phone_no = #{phoneNo},</if>
+            <if test="role != null">role = #{role},</if>
+            <if test="personIntroduction != null">person_introduction = #{personIntroduction},</if>
+            <if test="joinTime != null">join_time = #{joinTime},</if>
+            <if test="lastLoginTime != null">last_login_time = #{lastLoginTime},</if>
+            <if test="lastLoginIp != null">last_login_ip = #{lastLoginIp},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="exp != null">exp = #{exp},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="followeeNums != null">followee_nums = #{followeeNums},</if>
+            <if test="followerNums != null">follower_nums = #{followerNums},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+
+    <!-- 删除：根据 ID 删除 -->
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有 -->
+    <select id="selectAll" resultMap="UserResultMap">
+        SELECT * FROM users
+    </select>
+
+    <update id="updateFollowerNumsDelta" parameterType="map">
+        UPDATE users
+        SET follower_nums = follower_nums + #{delta}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFolloweeNumsDelta" parameterType="map">
+        UPDATE users
+        SET followee_nums = followee_nums + #{delta}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

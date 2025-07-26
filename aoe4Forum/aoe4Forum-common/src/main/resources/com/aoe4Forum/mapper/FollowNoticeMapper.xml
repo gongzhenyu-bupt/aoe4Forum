@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aoe4Forum.mapper.FollowNoticeMapper">
+
+    <resultMap id="FollowNoticeResultMap" type="com.aoe4Forum.entity.notice.FollowNotice">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="businessId" column="business_id"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <!-- 插入单条关注通知 -->
+    <insert id="insert" parameterType="map">
+        INSERT INTO follow_notice (id, user_id, business_id, create_time)
+        VALUES (#{id}, #{userId}, #{businessId}, #{createTime})
+    </insert>
+
+    <!-- 批量插入关注通知 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO follow_notice (id, user_id, business_id, create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.userId}, #{item.businessId}, #{item.createTime})
+        </foreach>
+    </insert>
+
+    <!-- 游标分页查询关注通知 -->
+    <select id="cursorQuery" resultMap="FollowNoticeResultMap">
+        SELECT * FROM follow_notice
+        WHERE user_id = #{request.userId}
+        <if test="request.lastCreateTime != null and request.lastId != null">
+            AND (
+            create_time &lt; #{request.lastCreateTime}
+            OR (create_time = #{request.lastCreateTime} AND id &lt; #{request.lastId})
+            )
+        </if>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{request.pageSize}
+    </select>
+
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aoe4Forum.mapper.PostContentMapper">
+
+    <resultMap id="PostContentResultMap" type="com.aoe4Forum.entity.PostContent">
+        <id property="postId" column="post_id"/>
+        <result property="content" column="content"/>
+    </resultMap>
+
+    <!-- 查询 -->
+    <select id="queryPostContentByPostId" resultMap="PostContentResultMap">
+        SELECT * FROM post_content
+        WHERE post_id = #{postId}
+    </select>
+
+    <!--更新-->
+    <update id="updateByPostId" parameterType="com.aoe4Forum.entity.PostContent">
+        UPDATE post_content
+        SET content = #{content}
+        WHERE post_id = #{postId}
+    </update>
+
+    <!--删除-->
+    <delete id="deleteByPostId" parameterType="long">
+        DELETE FROM post_content WHERE post_id = #{postId}
+    </delete>
+
+    <insert id="insert" parameterType="com.aoe4Forum.entity.PostContent">
+        INSERT INTO post_content (post_id,content) VALUES (#{postId},#{content})
+    </insert>
+
+</mapper>

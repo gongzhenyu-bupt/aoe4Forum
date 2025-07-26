@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aoe4Forum.mapper.PostMapper">
+
+    <!-- 通用 resultMap 映射 -->
+    <resultMap id="PostResultMap" type="com.aoe4Forum.entity.Post">
+        <id property="id" column="id"/>
+        <result property="uuid" column="uuid"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="forum" column="forum"/>
+        <result property="title" column="title"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="lastCommentTime" column="last_comment_time"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="dislikeCount" column="dislike_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="pageViewCount" column="page_view_count"/>
+        <result property="status" column="status"/>
+        <result property="postAbstract" column="post_abstract"/>
+    </resultMap>
+
+    <!-- 查询 -->
+    <select id="queryPostByForum" resultMap="PostResultMap">
+        SELECT * FROM post
+        <where>
+            <if test="forum != null and forum != '' and forum != 'all' ">
+                AND forum = #{forum}
+            </if>
+                 AND status != -1
+        </where>
+        ORDER BY last_comment_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="queryPostById" resultMap="PostResultMap">
+        SELECT * FROM post
+        WHERE id = #{id}
+    </select>
+
+    <!--统计一个板块下的帖子数量-->
+    <select id="countPostByForum" resultType="int">
+        SELECT COUNT(*) FROM post WHERE forum = #{forum}
+    </select>
+
+
+    <!-- 插入 -->
+    <insert id="insert" parameterType="com.aoe4Forum.entity.Post" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post (
+            uuid, user_id, user_name, forum, title, create_time, update_time, last_comment_time,
+            like_count, dislike_count, comment_count, page_view_count, status,post_abstract
+        ) VALUES (
+                     #{uuid}, #{userId}, #{userName}, #{forum}, #{title}, #{createTime}, #{updateTime}, #{lastCommentTime},
+                     #{likeCount}, #{dislikeCount}, #{commentCount}, #{pageViewCount}, #{status},#{postAbstract}
+                 )
+    </insert>
+
+    <!-- 更新 -->
+    <update id="updateById" parameterType="com.aoe4Forum.entity.Post">
+        UPDATE post
+        SET
+            uuid = #{uuid},
+            user_id = #{userId},
+            user_name = #{userName},
+            forum = #{forum},
+            title = #{title},
+            create_time = #{createTime},
+            update_time = #{updateTime},
+            last_comment_time = #{lastCommentTime},
+            like_count = #{likeCount},
+            dislike_count = #{dislikeCount},
+            comment_count = #{commentCount},
+            page_view_count = #{pageViewCount},
+            status = #{status},
+            post_abstract = #{postAbstract}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 永久删除 -->
+    <delete id="permanentDeleteById" parameterType="long">
+        DELETE FROM post WHERE id = #{id}
+    </delete>
+
+    <!--删除，只修改帖子有效标记位-->
+    <update id="deleteById" parameterType="long">
+        UPDATE post
+        SET
+            status = -1
+        WHERE id = #{id}
+    </update>
+
+    <update id="changeCommentCount" parameterType="map">
+        UPDATE post
+        SET
+            comment_count = comment_count + #{delta}
+        WHERE id = #{id}
+    </update>
+
+    <update id="postLike" parameterType="map">
+        UPDATE post
+        SET
+            like_count = like_count + #{delta}
+        WHERE id = #{id}
+    </update>
+
+    <update id="postDislike" parameterType="map">
+        UPDATE post
+        SET
+            dislike_count = dislike_count + #{delta}
+        WHERE id = #{id}
+    </update>
+
+    <select id="queryPostByIds" resultMap="PostResultMap">
+        SELECT * FROM post WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY FIELD(id,
+        <foreach collection="ids" item="id" separator=",">
+            #{id}
+        </foreach>
+        )
+    </select>
+
+</mapper>

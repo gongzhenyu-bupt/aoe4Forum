@@ -1,0 +1,840 @@
+<template>
+  <div class="article-list-page">
+    <!-- 顶部导航栏 -->
+    <header class="header">
+      <div class="header-container">
+        <div class="logo">
+          <span class="logo-text">NS</span>
+        </div>
+        <TopBar @login-click="showAuthModal = true" />
+      </div>
+    </header>
+
+    <!-- 认证弹窗 -->
+    <AuthModal v-if="showAuthModal" @close="showAuthModal = false" @success="showAuthModal = false" />
+
+    <!-- 主要内容区域 -->
+    <main class="main">
+      <div class="main-container">
+        <!-- 左侧内容区 -->
+        <div class="content-left">
+          <!-- 分类标签 -->
+          <section class="category-section">
+            <div class="category-bar">
+              <button
+                v-for="cat in categories"
+                :key="cat.forum"
+                :class="['category-btn', { active: activeCategory === cat.forum }]"
+                @click="switchCategory(cat.forum)"
+              >
+                {{ cat.label }}
+              </button>
+            </div>
+          </section>
+
+          <!-- 排序选项 -->
+          <section class="sort-section">
+            <div class="sort-tabs">
+              <button 
+                v-for="sort in sortOptions" 
+                :key="sort.key"
+                :class="['sort-tab', { active: activeSort === sort.key }]"
+                @click="switchSort(sort.key)"
+              >
+                {{ sort.label }}
+              </button>
+            </div>
+          </section>
+
+          <!-- 文章列表 -->
+          <section class="articles-section">
+            <div v-if="loading" class="loading-container">
+              <div class="loading-spinner"></div>
+              <p>加载中...</p>
+            </div>
+            
+            <div v-else-if="articles.length === 0" class="empty-container">
+              <p>暂无文章</p>
+            </div>
+            
+            <div v-else class="article-list">
+              <article 
+                v-for="article in articles" 
+                :key="article.id"
+                class="article-item"
+                @click="viewArticle(article)"
+              >
+                <div class="article-header">
+                  <div class="author-info">
+                    <div class="author-avatar">
+                      <span>{{ article.userName.charAt(0) }}</span>
+                    </div>
+                    <div class="author-details">
+                      <span class="author-name">{{ article.userName }}</span>
+                      <span class="publish-time">{{ formatTime(article.createTime) }}</span>
+                    </div>
+                  </div>
+                  <div class="article-tags">
+                    <span class="tag vue">Vue.js</span>
+                    <span class="tag spring">SpringBoot</span>
+                    <span v-if="article.status === 1" class="tag featured">置顶</span>
+                  </div>
+                </div>
+
+                <div class="article-content">
+                  <h3 class="article-title">{{ article.title }}</h3>
+                  <p class="article-excerpt">
+                    {{ article.postAbstract ?? article.title }}
+                  </p>
+                </div>
+
+                <div class="article-footer">
+                  <div class="article-stats">
+                    <span class="stat-item">
+                      👁 {{ formatNumber(article.pageViewCount) }}
+                    </span>
+                    <span class="stat-item">
+                      👍 {{ formatNumber(article.likeCount) }}
+                    </span>
+                    <span class="stat-item">
+                      💬 {{ formatNumber(article.commentCount) }}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- 加载更多 -->
+            <div v-if="hasMore && !loading" class="load-more">
+              <button class="load-more-btn" @click="loadMore">加载更多</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- 右侧边栏 -->
+        <aside class="sidebar">
+          <div v-if="!isLogin" class="welcome-card">
+            <h3>欢迎你好！</h3>
+            <p>点亮人生的每一天</p>
+            <button class="welcome-btn" @click="openAuthModal">去登录</button>
+          </div>
+          <div v-else class="user-info-card">
+            <div class="user-info-placeholder">用户信息展示区</div>
+          </div>
+
+          <!-- 统计信息 -->
+          <div class="stats-card">
+            <h4>统计</h4>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">文章</span>
+                <span class="stat-value">171</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">评论</span>
+                <span class="stat-value">624</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">访客</span>
+                <span class="stat-value">2216109</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 体验加倍 -->
+          <div class="experience-card">
+            <h4>体验加倍</h4>
+            <p>想要您的邮箱/手机号 可以找回密码以及接收南生论坛的消息通知，不错过任何一条消息。</p>
+            <div class="experience-actions">
+              <span class="experience-icon">📧</span>
+              <span class="experience-text">作者榜</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted, inject } from 'vue'
+import { useRouter } from 'vue-router'
+import TopBar from './TopBar.vue'
+import AuthModal from './AuthModal.vue'
+import { getArticlesApi, getProfileApi } from '../utils/api'
+import type { Article } from '../types/api'
+
+// 注入全局方法
+const openAuthModal = inject('openAuthModal') as () => void
+
+// 组件状态
+const loading = ref(false)
+const articles = ref<Article[]>([])
+const hasMore = ref(true)
+const showAuthModal = ref(false)
+const isLogin = ref(false)
+const userInfo = ref<any>({})
+const defaultAvatar = 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png' // 占位头像
+const router = useRouter()
+
+// 分页参数
+const pagination = reactive({
+  offset: 0,
+  limit: 10
+})
+
+// 分类选项
+const categories = [
+  { label: '全部', forum: 'all' },
+  { label: '单排攻略', forum: 'solo-guide' },
+  { label: '组排攻略', forum: 'team-guide' },
+  { label: '强度讨论', forum: 'meta-discuss' },
+  { label: '闲聊', forum: 'chat' },
+  { label: '封神榜', forum: 'hall-of-fame' }
+]
+
+// 排序选项
+const sortOptions = [
+  { key: 'hot', label: '热门' },
+  { key: 'latest', label: '最新' }
+]
+
+const activeCategory = ref(categories[0].forum)
+const activeSort = ref('hot')
+
+// 获取文章列表
+const fetchArticles = async (reset = false) => {
+  if (loading.value) return
+  
+  loading.value = true
+  
+  try {
+    const params = {
+      forum: activeCategory.value,
+      offset: reset ? 0 : pagination.offset,
+      limit: pagination.limit
+    }
+    
+    const response = await getArticlesApi(params)
+    
+    if (response.code === '0' || response.code === 0) {
+      const newArticles = response.data || []
+      
+      if (reset) {
+        articles.value = newArticles
+        pagination.offset = 0
+      } else {
+        articles.value.push(...newArticles)
+      }
+      
+      pagination.offset += newArticles.length
+      hasMore.value = newArticles.length === pagination.limit
+    }
+  } catch (error) {
+    console.error('获取文章列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 切换分类
+const switchCategory = (forum: string) => {
+  activeCategory.value = forum
+  fetchArticles(true)
+}
+
+// 切换排序
+const switchSort = (sort: string) => {
+  activeSort.value = sort
+  fetchArticles(true)
+}
+
+// 加载更多
+const loadMore = () => {
+  fetchArticles(false)
+}
+
+// 查看文章详情
+const viewArticle = (article: Article) => {
+  router.push(`/post/${article.id}`)
+}
+
+// 返回首页
+const goHome = () => {
+  // router.push('/')
+  console.log('返回首页')
+}
+
+// 处理创作中心
+const handleCreateAction = () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    openAuthModal()
+  } else {
+    console.log('进入创作中心')
+  }
+}
+
+// 格式化时间
+const formatTime = (timeStr: string) => {
+  const time = new Date(timeStr)
+  const now = new Date()
+  const diff = now.getTime() - time.getTime()
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor(diff / (1000 * 60))
+  
+  if (days > 0) {
+    return `${days}天前`
+  } else if (hours > 0) {
+    return `${hours}小时前`
+  } else if (minutes > 0) {
+    return `${minutes}分钟前`
+  } else {
+    return '刚刚'
+  }
+}
+
+// 格式化数字
+const formatNumber = (num: number) => {
+  if (num >= 10000) {
+    return `${(num / 10000).toFixed(1)}w`
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k`
+  }
+  return num.toString()
+}
+
+async function checkLogin() {
+  try {
+    const res = await getProfileApi()
+    if (res.code === 0 || res.code === '0') {
+      isLogin.value = true
+      userInfo.value = res.data
+      // 新增：同步userid
+      if (res.data.id) localStorage.setItem('userid', res.data.id)
+    } else {
+      isLogin.value = false
+      userInfo.value = {}
+    }
+  } catch {
+    isLogin.value = false
+    userInfo.value = {}
+  }
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchArticles(true)
+  checkLogin()
+})
+</script>
+
+<style scoped>
+.article-list-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+/* 头部样式 */
+.header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.logo-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 200px;
+}
+
+.search-input {
+  border: none;
+  background: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+}
+
+.search-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.create-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.create-btn:hover {
+  background: #2563eb;
+}
+
+.login-btn {
+  background: transparent;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-btn:hover {
+  background: #3b82f6;
+  color: white;
+}
+
+/* 主要内容区域 */
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.main-container {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+}
+
+/* 分类标签 */
+.category-section {
+  margin-bottom: 16px;
+}
+
+.category-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-btn:hover,
+.category-btn.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* 排序选项 */
+.sort-section {
+  margin-bottom: 20px;
+}
+
+.sort-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sort-tab {
+  background: none;
+  border: none;
+  padding: 12px 0;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.sort-tab:hover,
+.sort-tab.active {
+  color: #3b82f6;
+}
+
+.sort-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #3b82f6;
+}
+
+/* 文章列表 */
+.loading-container,
+.empty-container {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.article-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.article-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.article-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+}
+
+.author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.author-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.publish-time {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.article-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tag.vue {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tag.spring {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tag.featured {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.article-content {
+  margin-bottom: 16px;
+}
+
+.article-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.article-excerpt {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.article-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.article-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-item {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.load-more {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.load-more-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 24px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.welcome-card h3 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.welcome-card p {
+  margin-bottom: 16px;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.welcome-btn {
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.welcome-btn:hover {
+  transform: translateY(-1px);
+}
+
+.stats-card,
+.experience-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card h4,
+.experience-card h4 {
+  font-size: 16px;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: center;
+}
+
+.stats-grid .stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.experience-card p {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.experience-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.experience-icon {
+  font-size: 16px;
+}
+
+.experience-text {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0 16px;
+  }
+  
+  .search-box {
+    min-width: 150px;
+  }
+  
+  .main {
+    padding: 16px;
+  }
+  
+  .main-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .category-bar {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  
+  .article-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-info-placeholder {
+  width: 200px;
+  height: 100px;
+  background: #f3f3f3;
+  border: 1px dashed #bbb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+</style>

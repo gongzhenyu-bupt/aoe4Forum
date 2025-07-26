@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aoe4Forum.mapper.FeedMapper">
+
+    <resultMap id="FeedResultMap" type="com.aoe4Forum.entity.Feed">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="postId" column="post_id"/>
+        <result property="senderId" column="sender_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <!-- 查询用户所有 feed（测试或管理用途，不分页） -->
+    <select id="queryFeedByUserId" resultMap="FeedResultMap">
+        SELECT * FROM user_feed
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <!-- 添加一条 feed 数据 -->
+    <insert id="addFeed" parameterType="com.aoe4Forum.entity.Feed" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_feed (id,user_id, post_id, sender_id, create_time, status)
+        VALUES (#{id},#{userId}, #{postId}, #{senderId}, #{createTime}, #{status})
+    </insert>
+
+    <!-- 游标分页查询 feed -->
+    <select id="batchQueryFeedsByUserId" resultMap="FeedResultMap">
+        SELECT * FROM user_feed
+        WHERE user_id = #{userId}
+        <if test="lastCreateTime != null and lastId != null">
+            AND (
+            create_time &lt; #{lastCreateTime}
+            OR (create_time = #{lastCreateTime} AND id &lt; #{lastId})
+            )
+        </if>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{pageSize}
+    </select>
+
+    <!-- 将 feed 标记为已读（例如 status 从 0 -> 1）-->
+    <update id="setFeedRead" parameterType="com.aoe4Forum.entity.Feed">
+        UPDATE user_feed
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="batchAddFeeds" parameterType="map">
+        INSERT INTO user_feed (id,user_id, post_id, sender_id, create_time, status)
+        VALUES
+        <foreach collection="feeds" item="feed" separator=",">
+            (#{feed.id},#{feed.userId}, #{feed.postId}, #{feed.senderId}, #{feed.createTime}, #{feed.status})
+        </foreach>
+    </insert>
+
+</mapper>
