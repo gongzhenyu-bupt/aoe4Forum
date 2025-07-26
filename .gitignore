@@ -1,0 +1,4 @@
+# 项目排除路径
+/aoe4Forum/aoe4Forum-admin/target/
+/aoe4Forum/aoe4Forum-common/target/
+/aoe4Forum/aoe4Forum-web/target/
