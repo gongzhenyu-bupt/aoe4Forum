@@ -3,15 +3,16 @@ package com.aoe4Forum.service.impl;
 import com.aoe4Forum.component.RedisComponent;
 import com.aoe4Forum.entity.FollowRelation;
 import com.aoe4Forum.entity.User;
+import com.aoe4Forum.entity.dto.FollowNoticeDto;
 import com.aoe4Forum.entity.request.FollowCursorPageRequest;
 import com.aoe4Forum.entity.dto.FollowQueryResult;
 import com.aoe4Forum.entity.dto.FollowUserInfo;
 import com.aoe4Forum.entity.dto.UserInfoDto;
 import com.aoe4Forum.mapper.FollowRelationMapper;
 import com.aoe4Forum.mapper.UserMapper;
-import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.FollowBloomFilterService;
 import com.aoe4Forum.service.FollowService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
@@ -38,12 +39,13 @@ public class FollowServiceImpl implements FollowService {
     @Resource
     private UserMapper userMapper;
 
+    ObjectMapper objectMapper = new ObjectMapper();
+
     //    查询userid关注的人
     @Override
     public FollowQueryResult queryFollowee(FollowCursorPageRequest request) {
-            List<Long> followeeIds = new ArrayList<>();
-            LocalDateTime lastCreateTime = null;
-            Long lastId = null;
+            LocalDateTime lastCreateTime;
+            Long lastId;
 
     //        未命中缓存查sql
             List<FollowRelation> followRelations = followRelationMapper.queryByFollower(request);
@@ -87,7 +89,6 @@ public class FollowServiceImpl implements FollowService {
 // 查询userid的粉丝
     @Override
     public FollowQueryResult queryFollower(FollowCursorPageRequest request) {
-        List<Long> followerIds = new ArrayList<>();
         LocalDateTime lastCreateTime;
         Long lastId;
             //        未命中缓存查sql
@@ -148,9 +149,18 @@ public class FollowServiceImpl implements FollowService {
 
         redisComponent.cleanUserInfo(relation.getFollower());
         redisComponent.cleanUserInfo(relation.getFollowee());
-//      TODO发送被关注通知消息
-        String idAndUserId = relation.getFollower()+":"+relation.getFollowee();
-        rabbitTemplate.convertAndSend("notice.exchange", "notice.follow",idAndUserId);
+        FollowNoticeDto followNoticeDto = new FollowNoticeDto();
+
+        followNoticeDto.setUserId(relation.getFollower());
+        followNoticeDto.setRepliedUserId(relation.getFollowee());
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(followNoticeDto);
+        } catch (Exception e) {
+            return -1;
+        }
+
+        rabbitTemplate.convertAndSend("notice.exchange", "notice.follow",json);
         return 0;
     }
 

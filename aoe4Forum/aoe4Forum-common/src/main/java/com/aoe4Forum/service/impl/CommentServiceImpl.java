@@ -2,11 +2,14 @@ package com.aoe4Forum.service.impl;
 
 import com.aoe4Forum.entity.Comment;
 import com.aoe4Forum.entity.constans.Constants;
+import com.aoe4Forum.entity.dto.CommentNoticeDto;
+import com.aoe4Forum.entity.dto.LikeNoticeDto;
 import com.aoe4Forum.entity.request.CommentRequest;
 import com.aoe4Forum.mapper.CommentMapper;
 import com.aoe4Forum.mapper.PostMapper;
 import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.CommentService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,8 @@ public class CommentServiceImpl implements CommentService {
     @Resource
     RedisUtils redisUtils;
 
+    ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
     public void createComment(CommentRequest commentRequest){
         Comment comment = new Comment();
@@ -52,8 +57,17 @@ public class CommentServiceImpl implements CommentService {
             changePostCommentCount(comment.getPostId(),1);
         }
 
-        String idAndUserid = comment.getCommentId()+":"+comment.getRepliedUserId()+":"+comment.getUserId();
-        rabbitTemplate.convertAndSend("notice.exchange","notice.comment",idAndUserid);
+        CommentNoticeDto commentNoticeDto =  new CommentNoticeDto();
+        commentNoticeDto.setCommentId(comment.getCommentId());
+        commentNoticeDto.setRepliedUserId(commentRequest.getRepliedUserId());
+        commentNoticeDto.setUserId(commentRequest.getUserId());
+        String json = null;
+        try {
+            json = objectMapper.writeValueAsString(commentNoticeDto);
+        } catch (Exception e) {
+            return;
+        }
+        rabbitTemplate.convertAndSend("notice.exchange","notice.comment",json);
     }
 
     @Override
@@ -161,8 +175,18 @@ public class CommentServiceImpl implements CommentService {
                 redisUtils.sAdd(likeKey, userValue);
                 // 设置过期时间（如7天，避免Redis内存溢出）
                 redisUtils.expire(likeKey, 7, TimeUnit.DAYS);
-                String idAndUserId = commentId +":"+userId+":"+commentRequest.getUsername()+":comment:"+commentRequest.getRepliedUserId();
-                rabbitTemplate.convertAndSend("notice.exchange","notice.like",idAndUserId);
+                LikeNoticeDto noticeDTO = new LikeNoticeDto();
+                noticeDTO.setBusinessId(commentId);
+                noticeDTO.setSenderId(userId);
+                noticeDTO.setSenderName(commentRequest.getUsername());
+                noticeDTO.setBusinessType("comment");
+                String json = null;
+                try {
+                    json = objectMapper.writeValueAsString(noticeDTO);
+                } catch (Exception e) {
+                    return;
+                }
+                rabbitTemplate.convertAndSend("notice.exchange","notice.like",json);
             }
         } finally {
             // 释放锁

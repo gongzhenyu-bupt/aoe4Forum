@@ -281,3 +281,11 @@ export async function getFollowNoticesApi(params: { userId: number, lastId?: num
     method: 'GET',
   })
 }
+
+// 点赞/点踩帖子API
+export async function likePostApi(params: { postId: number, type: number}): Promise<any> {
+  const query = `postId=${params.postId}&type=${params.type}`
+  return request(`/community/likePost?${query}`, {
+    method: 'GET',
+  })
+}

@@ -4,6 +4,7 @@ import com.aoe4Forum.component.RedisComponent;
 import com.aoe4Forum.entity.Post;
 import com.aoe4Forum.entity.PostContent;
 import com.aoe4Forum.entity.constans.Constants;
+import com.aoe4Forum.entity.dto.LikeNoticeDto;
 import com.aoe4Forum.entity.request.CreatePostRequest;
 import com.aoe4Forum.entity.request.PostRequest;
 import com.aoe4Forum.entity.request.QueryPostRequest;
@@ -13,6 +14,7 @@ import com.aoe4Forum.mapper.PostContentMapper;
 import com.aoe4Forum.mapper.PostMapper;
 import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.PostService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class PostServiceImpl implements PostService {
     @Autowired
     private RedisUtils redisUtils;
 
+    ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void createPost(CreatePostRequest createPostRequest) {
@@ -161,7 +164,7 @@ public class PostServiceImpl implements PostService {
             // 尝试获取锁（5秒超时，10秒自动释放）
             boolean locked = redisUtils.tryLock(lockKey, 5000);
             if (!locked) {
-                throw new RuntimeException("操作太频繁，请稍后再试");
+                throw new BusinessException("操作太频繁");
             }
 
             // 1. 检查是否已点踩，若有则先取消点踩
@@ -185,8 +188,19 @@ public class PostServiceImpl implements PostService {
                 redisUtils.sAdd(likeKey, userValue);
                 // 设置过期时间（如7天，避免Redis内存溢出）
                 redisUtils.expire(likeKey, 7, TimeUnit.DAYS);
-                String idAndUserId = postId+":"+userId+":"+postRequest.getUsername()+":post";
-                rabbitTemplate.convertAndSend("notice.exchange","notice.like",idAndUserId);
+                LikeNoticeDto noticeDTO = new LikeNoticeDto();
+                noticeDTO.setBusinessId(postId);
+                noticeDTO.setSenderId(userId);
+                noticeDTO.setSenderName(postRequest.getUsername());
+                noticeDTO.setBusinessType("post");
+                String json = null;
+                try{
+                    json = objectMapper.writeValueAsString(noticeDTO);
+                }catch (Exception e){
+                    return;
+                }
+
+                rabbitTemplate.convertAndSend("notice.exchange","notice.like",json);
             }
         } finally {
             // 释放锁

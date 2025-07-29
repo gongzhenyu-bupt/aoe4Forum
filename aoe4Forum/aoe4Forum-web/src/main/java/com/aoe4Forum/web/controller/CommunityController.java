@@ -8,6 +8,7 @@ import com.aoe4Forum.entity.request.CommentRequest;
 import com.aoe4Forum.entity.request.CreatePostRequest;
 import com.aoe4Forum.entity.request.PostRequest;
 import com.aoe4Forum.entity.request.QueryPostRequest;
+import com.aoe4Forum.mapper.CommentMapper;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.impl.CommentServiceImpl;
 import com.aoe4Forum.service.impl.PostServiceImpl;
@@ -32,6 +33,8 @@ public class CommunityController extends ABaseController{
 
     @Autowired
     private CommentService commentService;
+    @Autowired
+    private CommentMapper commentMapper;
 
     //和帖子相关的api
     @PostMapping("/createPost")
@@ -168,4 +171,39 @@ public class CommunityController extends ABaseController{
         return ResponseVO.success("查询成功",result);
     }
 
+    @GetMapping("likeComment")
+    public ResponseVO<Map<String,String>> LikeComment(Long commentId,
+                                                      HttpServletRequest request
+    ){
+        CommentRequest commentRequest = new CommentRequest();
+        setRequestParams(request,commentRequest);
+        if(commentId==null){
+            return  ResponseVO.error("102","评论id错误");
+        }
+        commentRequest.setCommentId(commentId);
+        List<Comment> comments = commentMapper.queryCommentById(commentId);
+        if(comments==null||comments.isEmpty()){
+            return  ResponseVO.error("102","评论不存在");
+        }
+        Comment comment = comments.get(0);
+        commentRequest.setRepliedUserId(comment.getUserId());
+        commentService.likeComment(commentRequest);
+        return ResponseVO.success();
+    }
+
+    @GetMapping("likePost")
+    public ResponseVO<Map<String,String>> LikePost(@RequestParam Long postId,
+                                                   @RequestParam int type,
+                                                   HttpServletRequest request
+    ){
+        PostRequest postRequest = new PostRequest();
+        setRequestParams(request,postRequest);
+        postRequest.setPostId(postId);
+        if(type==1){
+            postServiceImpl.likePost(postRequest);
+        }else{
+            postServiceImpl.dislikePost(postRequest);
+        }
+        return ResponseVO.success();
+    }
 }

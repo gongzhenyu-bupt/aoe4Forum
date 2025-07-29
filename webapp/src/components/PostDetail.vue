@@ -22,6 +22,8 @@
           </div>
         </div>
         <div class="post-content" v-html="postContent"></div>
+        <!-- 点赞/点踩比例条 -->
+        <LikeDislikeBar :like="post.likeCount || 0" :dislike="post.dislikeCount || 0" :postId="post.id" @refresh="refreshPostInfo" />
       </div>
       <div v-else>加载中...</div>
       <!-- 评论区复用组件 -->
@@ -36,6 +38,8 @@ import { useRoute, useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import { getPostDetailApi, getPostBaseInfoApi } from '../utils/api'
 import CommentSection from './CommentSection.vue'
+// 修复 LikeDislikeBar 路径，确保文件名大小写与实际一致
+import LikeDislikeBar from './LikeDislikeBar.vue'
 
 const route = useRoute()
 const post = ref<any>(null)
@@ -66,6 +70,15 @@ function goToUserCenter(userid: number|string) {
   if (userid) {
     router.push(`/${userid}`)
   }
+}
+
+function refreshPostInfo() {
+  // 重新获取帖子基本信息，刷新点赞/点踩数
+  getPostBaseInfoApi(postId).then(baseRes => {
+    if (baseRes.code === 0 || baseRes.code === '0') {
+      post.value = baseRes.data
+    }
+  })
 }
 </script>
 

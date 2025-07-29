@@ -1326,8 +1326,8 @@ public class RedisUtils {
     // 获取分布式锁（返回是否成功）
     public boolean tryLock(String lockKey, long expireMillis) {
         // SET NX PX：不存在则设置，过期时间毫秒
-        String result = String.valueOf(redisTemplate.opsForValue().setIfAbsent(lockKey, "1", expireMillis, TimeUnit.MILLISECONDS));
-        return "OK".equals(result); // setIfAbsent成功返回"OK"
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", expireMillis, TimeUnit.MILLISECONDS);
+        return Boolean.TRUE.equals(result);// setIfAbsent成功返回"OK"
     }
 
     // 释放分布式锁
