@@ -47,9 +47,10 @@ export interface Article {
 }
 
 export interface ArticleListParams {
-  forum: string
-  offset: number
-  limit: number
+  forum?: string
+  offset?: number
+  limit?: number
+  page?: number
 }
 
 export interface ArticleListResponse {

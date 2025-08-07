@@ -2,14 +2,9 @@
   <div class="homepage">
     <!-- 顶部导航栏 -->
     <header class="header">
-      <div class="header-container">
-        <div class="logo">
-          <span class="logo-text">NS</span>
-        </div>
         <TopBar @login-click="showAuthModal = true" />
-      </div>
     </header>
-    <AuthModal v-if="showAuthModal" @close="showAuthModal = false" @success="showAuthModal = false" />
+         <AuthModal v-if="showAuthModal" @close="showAuthModal = false" @success="handleAuthSuccess" />
 
     <!-- 主要内容区域 -->
     <main class="main">
@@ -71,81 +66,31 @@
             </div>
           </section>
 
-          <!-- 精选问答 -->
-          <section class="qa-section">
-            <div class="section-header">
-              <h2 class="section-title">精选问答</h2>
-              <a href="#" class="more-link">查看更多 →</a>
-            </div>
-            
-            <div class="qa-list">
-              <div class="qa-item">
-                <div class="qa-avatar">
-                  <span class="avatar-text">南</span>
-                </div>
-                <div class="qa-content">
-                  <div class="qa-meta">
-                    <span class="qa-author">南生论坛社</span>
-                    <span class="qa-tag">优秀</span>
-                  </div>
-                  <h4 class="qa-title">南生论坛文章审核功能是如何实现的呢？</h4>
-                  <p class="qa-excerpt">问题描述：去除敏感词，还有能力分为对文件审核的问题？</p>
-                </div>
-              </div>
 
-              <div class="qa-item">
-                <div class="qa-avatar">
-                  <span class="avatar-text">测</span>
-                </div>
-                <div class="qa-content">
-                  <div class="qa-meta">
-                    <span class="qa-author">测试管理员</span>
-                    <span class="qa-tag">1个月</span>
-                  </div>
-                  <h4 class="qa-title">测试一下</h4>
-                  <p class="qa-excerpt">问题描述：测试问题</p>
-                </div>
-              </div>
-
-              <div class="qa-item">
-                <div class="qa-avatar">
-                  <span class="avatar-text">测</span>
-                </div>
-                <div class="qa-content">
-                  <div class="qa-meta">
-                    <span class="qa-author">测试管理员</span>
-                    <span class="qa-tag">2个月</span>
-                  </div>
-                  <h4 class="qa-title">测试发布一个问题</h4>
-                  <p class="qa-excerpt">问题描述：本问题仅仅是测试问题</p>
-                </div>
-              </div>
-
-              <div class="qa-item">
-                <div class="qa-avatar">
-                  <span class="avatar-text">马</span>
-                </div>
-                <div class="qa-content">
-                  <div class="qa-meta">
-                    <span class="qa-author">马高兴</span>
-                    <span class="qa-tag">1个月</span>
-                  </div>
-                  <h4 class="qa-title">H2O 生成</h4>
-                  <p class="qa-excerpt">这在有两种科技，氢 oxygen 和氧 hydrogen，你的目标...</p>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
 
         <!-- 右侧边栏 -->
         <aside class="sidebar">
-          <!-- 欢迎卡片 -->
-          <div class="welcome-card">
-            <h3>欢迎你好！</h3>
-            <p>4条人工智能一天</p>
-            <button class="welcome-btn" @click="openAuthModal">去登录</button>
-          </div>
+                     <!-- 欢迎卡片 -->
+           <div class="welcome-card">
+             <h3 v-if="isLogin">你好，{{ userInfo.username || '用户' }}！</h3>
+             <h3 v-else>欢迎你好！</h3>
+             
+             <div v-if="isLogin" class="user-stats">
+               <div class="stat-item">
+                 <span class="stat-label">关注</span>
+                 <span class="stat-value">{{ userInfo.followeeNums || 0 }}</span>
+               </div>
+               <div class="stat-item">
+                 <span class="stat-label">粉丝</span>
+                 <span class="stat-value">{{ userInfo.followerNums || 0 }}</span>
+               </div>
+             </div>
+             <p v-else>4条人工智能一天</p>
+             
+             <button v-if="!isLogin" class="welcome-btn" @click="openAuthModal">去登录</button>
+             <button v-else class="welcome-btn" @click="goToUserCenter">个人中心</button>
+           </div>
 
           <!-- 权限提示 -->
           <div class="permission-notice">
@@ -155,127 +100,135 @@
             <a href="#" class="notice-link">查看更多 →</a>
           </div>
 
-          <!-- 最新文章 -->
-          <div class="latest-articles">
-            <h4>最新文章</h4>
-            <div class="article-item">
-              <span class="article-dot">📝</span>
-              <div>
-                <p class="article-mini-title">现场一记起把档案填了下去</p>
-                <div class="article-mini-meta">
-                  <span class="mini-author">测试管理员</span>
-                  <span class="mini-stats">💬 3 👍 0</span>
+                     <!-- 最新文章 -->
+           <div class="latest-articles">
+             <h4>最新文章</h4>
+             <div v-if="loadingLatestArticles" class="loading-state">
+               <p>加载中...</p>
+             </div>
+             <div v-else-if="latestArticles.length === 0" class="empty-state">
+               <p>暂无最新文章</p>
+             </div>
+                           <div v-else>
+                <div v-for="article in latestArticles" :key="article.id" class="article-item" @click="goToArticle(article.id)">
+                  <span class="article-dot">📝</span>
+                  <div>
+                    <p class="article-mini-title">{{ truncateTitle(article.title) }}</p>
+                    <div class="article-mini-meta">
+                      <span class="mini-author">{{ article.username }}</span>
+                      <span class="mini-stats">💬 {{ article.commentCount || 0 }} 👍 {{ article.likeCount || 0 }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+           </div>
 
-            <div class="article-item">
-              <span class="article-dot">📝</span>
-              <div>
-                <p class="article-mini-title">This is a TEST</p>
-                <div class="article-mini-meta">
-                  <span class="mini-author">AdverHere</span>
-                  <span class="mini-stats">💬 68 👍 0</span>
-                </div>
-              </div>
-            </div>
+          
 
-            <div class="article-item">
-              <span class="article-dot">📝</span>
-              <div>
-                <p class="article-mini-title">如何进行南生论坛管理呢？</p>
-                <div class="article-mini-meta">
-                  <span class="mini-author">马高兴</span>
-                  <span class="mini-stats">💬 105 👍 2</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- 测试效果 -->
-          <div class="test-section">
-            <h4>测试效果</h4>
-            <div class="test-item">
-              <span class="test-avatar">G</span>
-              <div>
-                <p class="test-title">Gimma</p>
-                <span class="test-stats">💬 26 👍 0</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 最新问答 -->
-          <div class="latest-qa">
-            <h4>最新问答</h4>
-            <div class="qa-mini-item">
-              <span class="qa-star">⭐</span>
-              <div>
-                <p class="qa-mini-title">南生论坛文章审核功能是如何实现的呢？</p>
-                <div class="qa-mini-meta">
-                  <span class="qa-mini-author">南生论坛社</span>
-                  <span class="qa-mini-stats">💬 9</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="qa-mini-item">
-              <span class="qa-star">⭐</span>
-              <div>
-                <p class="qa-mini-title">测试一下</p>
-                <div class="qa-mini-meta">
-                  <span class="qa-mini-author">测试管理员</span>
-                  <span class="qa-mini-stats">💬 40</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="qa-mini-item">
-              <span class="qa-star">⭐</span>
-              <div>
-                <p class="qa-mini-title">测试发布一个问题</p>
-                <div class="qa-mini-meta">
-                  <span class="qa-mini-author">测试管理员</span>
-                  <span class="qa-mini-stats">💬 75</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="qa-mini-item">
-              <span class="qa-star">⭐</span>
-              <div>
-                <p class="qa-mini-title">各种之文</p>
-                <div class="qa-mini-meta">
-                  <span class="qa-mini-author">Joseoh</span>
-                  <span class="qa-mini-stats">💬 90</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </aside>
       </div>
-    </main>
-
-    <section class="api-test-area">
-      <h2>接口测试区</h2>
-      <p>这里用于测试已完成但暂未有正式位置的接口。</p>
-      <AvatarUpload />
-    </section>
-  </div>
+         </main>
+   </div>
 </template>
 
 <script setup lang="ts">
-import { inject, ref } from 'vue'
+import { inject, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import AuthModal from './AuthModal.vue'
-import AvatarUpload from './AvatarUpload.vue'
+import { getLatestArticlesApi, getProfileApi, getUserInfoApi } from '../utils/api'
+import { getCookie } from '../utils/cookie'
 
+const router = useRouter()
 const showAuthModal = ref(false)
 const openAuthModal = inject('openAuthModal') as () => void
 const navigateToArticles = inject('navigateToArticles') as () => void
 
+// 最新文章数据
+const latestArticles = ref<any[]>([])
+const loadingLatestArticles = ref(false)
+
+// 用户信息
+const userInfo = ref<any>({})
+const isLogin = ref(false)
+
+// 获取最新文章
+const fetchLatestArticles = async () => {
+  if (loadingLatestArticles.value) return
+  
+  loadingLatestArticles.value = true
+  try {
+    const response = await getLatestArticlesApi(10) // 后端默认返回10条，我们请求10条
+    if (response.code === '0' || response.code === 0) {
+      // 只取前5条显示
+      latestArticles.value = (response.data || []).slice(0, 5)
+    }
+  } catch (error) {
+    console.error('获取最新文章失败:', error)
+  } finally {
+    loadingLatestArticles.value = false
+  }
+}
+
+// 截断标题文本
+const truncateTitle = (title: string, maxLength: number = 20) => {
+  if (title.length <= maxLength) return title
+  return title.substring(0, maxLength) + '...'
+}
+
+// 跳转到文章详情
+const goToArticle = (articleId: number) => {
+  router.push(`/post/${articleId}`)
+}
+
+// 检查登录状态并获取用户信息
+const checkLoginAndGetUserInfo = async () => {
+  const token = getCookie('token')
+  if (token) {
+    isLogin.value = true
+    try {
+      // 先获取当前用户基本信息
+      const profileResponse = await getProfileApi()
+      if (profileResponse.code === '0' || profileResponse.code === 0) {
+        const currentUser = profileResponse.data || {}
+        
+        // 通过用户ID获取详细信息
+        if (currentUser.id) {
+          const userInfoResponse = await getUserInfoApi(currentUser.id.toString())
+          if (userInfoResponse.code === '0' || userInfoResponse.code === 0) {
+            userInfo.value = userInfoResponse.data || {}
+          } else {
+            // 如果获取详细信息失败，使用基本信息
+            userInfo.value = currentUser
+          }
+        } else {
+          userInfo.value = currentUser
+        }
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+    }
+  } else {
+    isLogin.value = false
+    userInfo.value = {}
+  }
+}
+
+// 跳转到个人中心
+const goToUserCenter = () => {
+  router.push('/user')
+}
+
+// 处理登录成功
+const handleAuthSuccess = async () => {
+  showAuthModal.value = false
+  await checkLoginAndGetUserInfo()
+}
+
 const handleCreateAction = () => {
   // 检查是否需要登录权限
-  const token = localStorage.getItem('token')
+  const token = getCookie('token')
   if (!token) {
     openAuthModal()
   } else {
@@ -283,6 +236,12 @@ const handleCreateAction = () => {
     console.log('进入创作中心')
   }
 }
+
+// 组件挂载时获取最新文章
+onMounted(() => {
+  fetchLatestArticles()
+  checkLoginAndGetUserInfo()
+})
 </script>
 
 <style scoped>
@@ -530,80 +489,7 @@ const handleCreateAction = () => {
   line-height: 1.5;
 }
 
-/* 问答区域 */
-.qa-section {
-  margin-bottom: 32px;
-}
 
-.qa-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.qa-item {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: flex;
-  gap: 12px;
-  transition: transform 0.2s ease;
-}
-
-.qa-item:hover {
-  transform: translateY(-1px);
-}
-
-.qa-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.qa-content {
-  flex: 1;
-}
-
-.qa-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-size: 12px;
-}
-
-.qa-author {
-  font-weight: 500;
-  color: #374151;
-}
-
-.qa-tag {
-  background: #fbbf24;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-}
-
-.qa-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 4px;
-}
-
-.qa-excerpt {
-  font-size: 13px;
-  color: #64748b;
-}
 
 /* 侧边栏样式 */
 .sidebar {
@@ -646,6 +532,32 @@ const handleCreateAction = () => {
   transform: translateY(-1px);
 }
 
+.user-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .permission-notice {
   background: white;
   padding: 16px;
@@ -681,55 +593,54 @@ const handleCreateAction = () => {
   font-size: 12px;
 }
 
-.latest-articles, .test-section, .latest-qa {
+.latest-articles {
   background: white;
   padding: 16px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.latest-articles h4, .test-section h4, .latest-qa h4 {
+.latest-articles h4 {
   font-size: 16px;
   color: #1e293b;
   margin-bottom: 12px;
 }
 
-.article-item, .test-item, .qa-mini-item {
+.article-item {
   display: flex;
   gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.article-item:last-child, .test-item:last-child, .qa-mini-item:last-child {
+.article-item:hover {
+  background-color: #f8fafc;
+  border-radius: 6px;
+  padding: 8px 6px;
+  margin: 0 -6px;
+}
+
+.article-item:last-child {
   border-bottom: none;
 }
 
-.article-dot, .test-avatar, .qa-star {
+.article-dot {
   flex-shrink: 0;
   font-size: 14px;
 }
 
-.test-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.article-mini-title, .test-title, .qa-mini-title {
+.article-mini-title {
   font-size: 13px;
   color: #374151;
   margin-bottom: 4px;
   line-height: 1.3;
+  text-align: left;
+  word-break: break-word;
 }
 
-.article-mini-meta, .test-stats, .qa-mini-meta {
+.article-mini-meta {
   font-size: 11px;
   color: #64748b;
   display: flex;
@@ -737,8 +648,15 @@ const handleCreateAction = () => {
   gap: 8px;
 }
 
-.mini-author, .qa-mini-author {
+.mini-author {
   font-weight: 500;
+}
+
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 20px 0;
+  color: #64748b;
+  font-size: 14px;
 }
 
 /* 响应式设计 */
@@ -770,16 +688,5 @@ const handleCreateAction = () => {
   }
 }
 
-.api-test-area {
-  margin: 40px auto;
-  max-width: 600px;
-  padding: 24px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  background: #fafbfc;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-}
-.api-test-area h2 {
-  margin-bottom: 12px;
-}
+
 </style>

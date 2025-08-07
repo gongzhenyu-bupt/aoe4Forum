@@ -1,6 +1,7 @@
 package com.aoe4Forum.mapper;
 
 import com.aoe4Forum.entity.Post;
+import com.aoe4Forum.entity.dto.PostCountDto;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -40,5 +41,5 @@ public interface PostMapper {
     @Update("UPDATE post SET comment_count = #{commentCount} WHERE id = #{postId}")
     void updateCommentCount(@Param("postId") Long postId, @Param("commentCount") int commentCount);
 
-
+    void batchUpdatePostCounts(@Param("list") List<PostCountDto> postCountList);
 }

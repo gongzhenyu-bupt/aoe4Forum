@@ -3,11 +3,12 @@ package com.aoe4Forum.entity;
 import lombok.Data;
 import org.joda.time.DateTime;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-public class Post {
+public class Post{
     private Long id;
     private String uuid;
     private Long userId;

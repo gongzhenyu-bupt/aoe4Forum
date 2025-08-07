@@ -2,12 +2,7 @@
   <div class="post-detail-page">
     <!-- 顶部导航栏 -->
     <header class="header">
-      <div class="header-container">
-        <div class="logo">
-          <span class="logo-text">NS</span>
-        </div>
         <TopBar />
-      </div>
     </header>
     <div class="post-detail-container">
       <!-- 标题 -->

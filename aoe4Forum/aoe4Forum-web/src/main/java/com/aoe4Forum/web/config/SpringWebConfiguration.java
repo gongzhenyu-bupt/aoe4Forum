@@ -28,7 +28,7 @@ public class SpringWebConfiguration implements WebMvcConfigurer {
                 "/account/login", "/account/register", "/account/checkCode",
                 "/community/queryPostContent", "/community/queryPostByHot", "/community/queryPostByForum",
                 "/community/getComment","/community/getCommentsByPostId","/community/getCommentsByParentId",
-                "/community/getCommentsByParentIds"
+                "/community/getCommentsByParentIds","/swagger-ui/**","/v3/**","/community/queryPostById"
         );
     }
 

@@ -53,6 +53,25 @@ export async function getArticlesApi(params: ArticleListParams): Promise<Article
   })
 }
 
+// 获取热门帖子API
+export async function getHotArticlesApi(page: number): Promise<ArticleListResponse> {
+  return request(`/community/queryPostByHot?page=${page}`, {
+    method: 'GET',
+  })
+}
+
+// 获取最新文章API（用于首页侧边栏）
+export async function getLatestArticlesApi(limit: number = 3): Promise<ArticleListResponse> {
+  return request('/community/queryPostByForum', {
+    method: 'POST',
+    body: JSON.stringify({
+      forum: 'all',
+      offset: 0,
+      limit: limit
+    }),
+  })
+}
+
 // 获取当前用户信息API
 export async function getProfileApi(): Promise<ApiResponse> {
   return request('/account/profile', {

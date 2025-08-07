@@ -9,6 +9,7 @@ import com.aoe4Forum.mapper.CommentMapper;
 import com.aoe4Forum.mapper.PostMapper;
 import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.CommentService;
+import com.aoe4Forum.service.PostRedisService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Resource
     private RabbitTemplate rabbitTemplate;
+
+    @Resource
+    private PostRedisService postRedisService;
 
     @Resource
     RedisUtils redisUtils;
@@ -134,7 +138,8 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private void changePostCommentCount(Long postId,Integer delta){
-        postMapper.changeCommentCount(postId,delta);
+        postRedisService.changeCount(postId,"comment",delta);
+        postRedisService.setLastCommentTime(postId,LocalDateTime.now());
     }
 
     boolean verifyComment(Comment comment){

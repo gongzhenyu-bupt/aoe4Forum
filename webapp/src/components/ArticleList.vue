@@ -2,12 +2,7 @@
   <div class="article-list-page">
     <!-- 顶部导航栏 -->
     <header class="header">
-      <div class="header-container">
-        <div class="logo">
-          <span class="logo-text">NS</span>
-        </div>
-        <TopBar @login-click="showAuthModal = true" />
-      </div>
+      <TopBar @login-click="showAuthModal = true" />
     </header>
 
     <!-- 认证弹窗 -->
@@ -32,8 +27,8 @@
             </div>
           </section>
 
-          <!-- 排序选项 -->
-          <section class="sort-section">
+          <!-- 排序选项 - 只在全部分类下显示 -->
+          <section v-if="activeCategory === 'all'" class="sort-section">
             <div class="sort-tabs">
               <button 
                 v-for="sort in sortOptions" 
@@ -105,8 +100,9 @@
             </div>
 
             <!-- 加载更多 -->
-            <div v-if="hasMore && !loading" class="load-more">
-              <button class="load-more-btn" @click="loadMore">加载更多</button>
+            <div v-if="!loading" class="load-more">
+              <button v-if="hasMore" class="load-more-btn" @click="loadMore">加载更多</button>
+              <p v-else class="no-more-text">没有更多了</p>
             </div>
           </section>
         </div>
@@ -157,11 +153,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, inject } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import AuthModal from './AuthModal.vue'
-import { getArticlesApi, getProfileApi } from '../utils/api'
+import { getArticlesApi, getHotArticlesApi, getProfileApi } from '../utils/api'
 import type { Article } from '../types/api'
 
 // 注入全局方法
@@ -177,9 +173,17 @@ const userInfo = ref<any>({})
 const defaultAvatar = 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png' // 占位头像
 const router = useRouter()
 
+// 浏览状态管理
+const browseState = reactive({
+  category: 'all',
+  sort: 'hot',
+  offset: 0,
+  scrollPosition: 0
+})
+
 // 分页参数
 const pagination = reactive({
-  offset: 0,
+  offset: browseState.offset,
   limit: 10
 })
 
@@ -199,8 +203,8 @@ const sortOptions = [
   { key: 'latest', label: '最新' }
 ]
 
-const activeCategory = ref(categories[0].forum)
-const activeSort = ref('hot')
+const activeCategory = ref(browseState.category)
+const activeSort = ref(browseState.sort)
 
 // 获取文章列表
 const fetchArticles = async (reset = false) => {
@@ -209,13 +213,39 @@ const fetchArticles = async (reset = false) => {
   loading.value = true
   
   try {
-    const params = {
-      forum: activeCategory.value,
-      offset: reset ? 0 : pagination.offset,
-      limit: pagination.limit
-    }
+    let response
     
-    const response = await getArticlesApi(params)
+    if (activeCategory.value === 'all') {
+      if (activeSort.value === 'hot') {
+        // 热门排序：使用热门帖子API
+        const page = Math.floor((reset ? 0 : pagination.offset) / 10) + 1
+        
+        // 检查是否超过5页
+        if (page > 5) {
+          hasMore.value = false
+          loading.value = false
+          return
+        }
+        
+        response = await getHotArticlesApi(page)
+      } else {
+        // 最新排序：使用原有API
+        const params = {
+          forum: activeCategory.value,
+          offset: reset ? 0 : pagination.offset,
+          limit: pagination.limit
+        }
+        response = await getArticlesApi(params)
+      }
+    } else {
+      // 其他分类使用原有API
+      const params = {
+        forum: activeCategory.value,
+        offset: reset ? 0 : pagination.offset,
+        limit: pagination.limit
+      }
+      response = await getArticlesApi(params)
+    }
     
     if (response.code === '0' || response.code === 0) {
       const newArticles = response.data || []
@@ -228,7 +258,15 @@ const fetchArticles = async (reset = false) => {
       }
       
       pagination.offset += newArticles.length
-      hasMore.value = newArticles.length === pagination.limit
+      
+      // 检查是否还有更多数据
+      if (activeCategory.value === 'all' && activeSort.value === 'hot') {
+        // 全部分类+热门排序：检查是否还有更多数据
+        hasMore.value = newArticles.length === 10 && Math.floor(pagination.offset / 10) < 5
+      } else {
+        // 其他情况：使用原有逻辑
+        hasMore.value = newArticles.length === pagination.limit
+      }
     }
   } catch (error) {
     console.error('获取文章列表失败:', error)
@@ -237,25 +275,60 @@ const fetchArticles = async (reset = false) => {
   }
 }
 
+// 保存浏览状态
+const saveBrowseState = () => {
+  browseState.category = activeCategory.value
+  browseState.sort = activeSort.value
+  browseState.offset = pagination.offset
+  browseState.scrollPosition = window.scrollY
+  sessionStorage.setItem('articleListState', JSON.stringify(browseState))
+}
+
+// 恢复浏览状态
+const restoreBrowseState = () => {
+  const savedState = sessionStorage.getItem('articleListState')
+  if (savedState) {
+    const state = JSON.parse(savedState)
+    browseState.category = state.category || 'all'
+    browseState.sort = state.sort || 'hot'
+    browseState.offset = state.offset || 0
+    browseState.scrollPosition = state.scrollPosition || 0
+    
+    activeCategory.value = browseState.category
+    activeSort.value = browseState.sort
+    pagination.offset = browseState.offset
+  }
+}
+
 // 切换分类
 const switchCategory = (forum: string) => {
   activeCategory.value = forum
+  // 如果切换到非全部分类，重置排序选项
+  if (forum !== 'all') {
+    activeSort.value = 'hot' // 重置为默认排序
+  }
+  saveBrowseState()
   fetchArticles(true)
 }
 
 // 切换排序
 const switchSort = (sort: string) => {
   activeSort.value = sort
+  // 重置分页参数
+  pagination.offset = 0
+  saveBrowseState()
   fetchArticles(true)
 }
 
 // 加载更多
 const loadMore = () => {
   fetchArticles(false)
+  saveBrowseState()
 }
 
 // 查看文章详情
 const viewArticle = (article: Article) => {
+  saveBrowseState()
   router.push(`/post/${article.id}`)
 }
 
@@ -324,10 +397,43 @@ async function checkLogin() {
   }
 }
 
+// 滚动事件处理
+const handleScroll = () => {
+  browseState.scrollPosition = window.scrollY
+  // 节流保存，避免频繁保存
+  clearTimeout((window as any).scrollTimeout)
+  ;(window as any).scrollTimeout = setTimeout(() => {
+    saveBrowseState()
+  }, 100)
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
+  // 恢复浏览状态
+  restoreBrowseState()
+  
+  // 获取文章列表
   fetchArticles(true)
+  
+  // 检查登录状态
   checkLogin()
+  
+  // 恢复滚动位置
+  nextTick(() => {
+    if (browseState.scrollPosition > 0) {
+      window.scrollTo(0, browseState.scrollPosition)
+    }
+  })
+  
+  // 添加滚动事件监听
+  window.addEventListener('scroll', handleScroll)
+})
+
+// 组件卸载时保存状态
+onUnmounted(() => {
+  saveBrowseState()
+  // 移除滚动事件监听
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -675,6 +781,13 @@ onMounted(() => {
 .load-more-btn:hover {
   background: #e2e8f0;
   border-color: #cbd5e1;
+}
+
+.no-more-text {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
 }
 
 /* 侧边栏样式 */

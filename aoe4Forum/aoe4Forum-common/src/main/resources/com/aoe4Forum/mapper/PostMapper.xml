@@ -126,4 +126,49 @@
         )
     </select>
 
+    <update id="batchUpdatePostCounts">
+        UPDATE post
+        <set>
+            like_count = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.postId} THEN #{item.likeCount}
+            </foreach>
+            ELSE like_count
+            END,
+
+            dislike_count = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.postId} THEN #{item.dislikeCount}
+            </foreach>
+            ELSE dislike_count
+            END,
+
+            comment_count = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.postId} THEN #{item.commentCount}
+            </foreach>
+            ELSE comment_count
+            END,
+
+            page_view_count = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.postId} THEN #{item.pageViewCount}
+            </foreach>
+            ELSE page_view_count
+            END,
+
+            last_comment_time = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.postId} THEN #{item.lastCommentTime}
+            </foreach>
+            ELSE last_comment_time
+            END
+        </set>
+        WHERE id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item.postId}
+        </foreach>
+    </update>
+
+
 </mapper>

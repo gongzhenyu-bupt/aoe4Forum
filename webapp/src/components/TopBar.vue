@@ -4,7 +4,7 @@
       <nav class="nav">
         <a :class="['nav-link', { active: currentRoute === '/' }]" @click="goHome">首页</a>
         <a :class="['nav-link', { active: currentRoute === '/articles' }]" @click="goArticles">文章</a>
-        <a :class="['nav-link', { active: currentRoute === '/qa' }]" @click="goQA">问答</a>
+
         <a :class="['nav-link', { active: currentRoute === '/trends' }]" @click="goTrends">动态</a>
       </nav>
       <button v-if="!isLogin" class="login-btn" @click="emitLoginClick">登录</button>
@@ -59,9 +59,7 @@ function goHome() {
 function goArticles() {
   if (route.path !== '/articles') router.push('/articles')
 }
-function goQA() {
-  if (route.path !== '/qa') router.push('/qa')
-}
+
 function goTrends() {
   if (route.path !== '/trends') router.push('/trends')
 }

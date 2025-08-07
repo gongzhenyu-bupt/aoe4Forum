@@ -12,6 +12,7 @@ import com.aoe4Forum.mapper.CommentMapper;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.impl.CommentServiceImpl;
 import com.aoe4Forum.service.impl.PostServiceImpl;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +34,7 @@ public class CommunityController extends ABaseController{
 
     @Autowired
     private CommentService commentService;
+
     @Autowired
     private CommentMapper commentMapper;
 
@@ -66,7 +68,6 @@ public class CommunityController extends ABaseController{
     public ResponseVO<Map<String,String>> updatePost(@Valid @RequestBody PostRequest postRequest,
                                                      HttpServletRequest request
                                                      ){
-//        TODO 需要加一个拦截器做登录
         setRequestParams(request,postRequest);
 //       修改帖子
         postServiceImpl.updatePost(postRequest);
@@ -76,26 +77,25 @@ public class CommunityController extends ABaseController{
 //    查询指定数量的帖子信息，不包含具体内容
     @PostMapping("/queryPostByForum")
     public ResponseVO<List<Post>> queryPostByForum(@Valid @RequestBody QueryPostRequest queryPostRequest){
-
         List<Post> posts = postServiceImpl.queryPostByForum(queryPostRequest);
 
         return  ResponseVO.success("查询成功",posts);
     }
-    @RequestMapping("/queryPostById")
+    @GetMapping("/queryPostById")
     public ResponseVO<Post> queryPostById(@RequestParam Long postId){
         Post post = postServiceImpl.queryPostById(postId);
         return  ResponseVO.success("查询成功",post);
     }
 //    查询指定数量的帖子信息，不包含具体内容
-    @PostMapping("/queryPostByHot")
-    public ResponseVO<List<Post>> queryPostByHot(@Valid @RequestBody QueryPostRequest queryPostRequest){
+    @GetMapping("/queryPostByHot")
+    public ResponseVO<List<Post>> queryPostByHot(@RequestParam int page){
 
-        List<Post> posts = postServiceImpl.queryPostByHot(queryPostRequest);
+        List<Post> posts = postServiceImpl.queryPostByHot(page);
 
         return  ResponseVO.success("查询成功",posts);
     }
 
-    @RequestMapping("/queryPostContent")
+    @GetMapping("/queryPostContent")
     public ResponseVO<PostContent> queryPostContent(long postId){
         PostContent postcontent = postServiceImpl.queryPostContent(postId);
 
@@ -115,7 +115,7 @@ public class CommunityController extends ABaseController{
         return ResponseVO.success("评论成功",null);
     }
 
-    @RequestMapping("/deleteComment")
+    @GetMapping("/deleteComment")
     public ResponseVO<Map<String,String>> deleteComment(@RequestParam Long commentId,
                                                         HttpServletRequest request
                                                         ){
@@ -126,14 +126,14 @@ public class CommunityController extends ABaseController{
         return ResponseVO.success("删除成功",null);
     }
 
-    @RequestMapping("/getComment")
+    @GetMapping("/getComment")
     public ResponseVO<Comment> getComment(@RequestParam Long commentId){
         Comment comment = commentService.getComment(commentId);
         return ResponseVO.success("查询成功",comment);
     }
 
 
-    @RequestMapping("/getCommentsByPostId")
+    @GetMapping("/getCommentsByPostId")
     public ResponseVO<List<Comment>> getCommentsByPostId(@RequestParam Long postId,
                                                          @RequestParam int offset,
                                                          @RequestParam int limit
@@ -146,7 +146,7 @@ public class CommunityController extends ABaseController{
         return   ResponseVO.success("查询成功",parentComments);
     }
 
-    @RequestMapping("getCommentsByParentId")
+    @GetMapping("getCommentsByParentId")
     public ResponseVO<List<Comment>> getCommentsByParentId(@RequestParam Long parentId,
                                                            @RequestParam int offset,
                                                            @RequestParam int limit

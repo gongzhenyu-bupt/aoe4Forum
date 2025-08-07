@@ -5,7 +5,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from './components/HomePage.vue'
 import ArticleList from './components/ArticleList.vue'
-import QAList from './components/QAList.vue'
+
 import PostDetail from './components/PostDetail.vue'
 import UserCenter from './components/UserCenter.vue'
 import AvatarEdit from './components/AvatarEdit.vue'
@@ -19,7 +19,7 @@ import Notice from './components/Notice.vue'
 const routes = [
   { path: '/', component: HomePage },
   { path: '/articles', component: ArticleList },
-  { path: '/qa', component: QAList },
+
   { path: '/post/:id', component: PostDetail },
   { path: '/:userid', component: UserCenter },
   { path: '/edit-avatar', component: AvatarEdit },

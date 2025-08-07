@@ -9,6 +9,7 @@ import com.aoe4Forum.service.impl.FollowServiceImpl;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,7 +29,7 @@ public class FollowController {
     private FollowServiceImpl followServiceimpl;
 
 //    用户关注另一个用户（写操作）
-    @RequestMapping("/follow")
+    @GetMapping("/follow")
     public ResponseVO<Map<String,String>> follow(Long followerId, Long followeeId, HttpServletRequest request) {
         Long requestUserId = (Long) request.getAttribute("userId");
         if(Objects.equals(followerId, followeeId)){
@@ -45,7 +46,7 @@ public class FollowController {
         return ResponseVO.success();
     }
 //    用户取关另一个用户（写操作）
-    @RequestMapping("/unfollow")
+    @GetMapping("/unfollow")
     public ResponseVO<Map<String,String>> unfollow(Long followerId, Long followeeId, HttpServletRequest request){
         Long requestUserId = (Long) request.getAttribute("userId");
         if(Objects.equals(followerId, followeeId)){
@@ -63,7 +64,7 @@ public class FollowController {
     }
 
 //    查询某个用户的关注列表（读操作）
-    @RequestMapping("followerList")
+    @GetMapping("followerList")
     public ResponseVO<FollowQueryResult> followerList(
                                                     Long userId,
                                                     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime lastCreateTime,
@@ -80,7 +81,7 @@ public class FollowController {
         return ResponseVO.success("查询成功",followQueryResult);
     }
 //    查询某个用户的粉丝列表（读操作）
-    @RequestMapping("followeeList")
+    @GetMapping("followeeList")
     public ResponseVO<FollowQueryResult> followeeList(
                                                             Long userId,
                                                             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime lastCreateTime,
@@ -98,7 +99,7 @@ public class FollowController {
 }
 
 //    查询是否已关注（读操作）
-    @RequestMapping("isFollow")
+    @GetMapping("isFollow")
     public ResponseVO<Map<String,String>> isFollow(Long follower,
                                                    Long followee){
         FollowRelation followRelation = new FollowRelation();
