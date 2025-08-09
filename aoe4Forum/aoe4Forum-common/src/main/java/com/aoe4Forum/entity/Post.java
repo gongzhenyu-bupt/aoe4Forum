@@ -13,6 +13,7 @@ public class Post{
     private String uuid;
     private Long userId;
     private String userName;
+    private String avatar; // 用户头像
     private String forum;
     private String title;
     private LocalDateTime createTime;

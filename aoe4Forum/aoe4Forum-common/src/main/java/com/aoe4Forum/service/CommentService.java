@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface CommentService {
-    void createComment(CommentRequest commentRequest);
+    Comment createComment(CommentRequest commentRequest);
     void deleteComment(CommentRequest commentRequest);
     Comment getComment(Long commentId);
     List<Comment> getCommentsByPostId(Long postId,int offset,int limit);

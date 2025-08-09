@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import com.aoe4Forum.entity.dto.TokenUserInfoDto;
+import com.aoe4Forum.component.RedisComponent;
 
 @Service
 public class CommentServiceImpl implements CommentService {
@@ -38,10 +40,13 @@ public class CommentServiceImpl implements CommentService {
     @Resource
     RedisUtils redisUtils;
 
+    @Resource
+    private RedisComponent redisComponent;
+
     ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public void createComment(CommentRequest commentRequest){
+    public Comment createComment(CommentRequest commentRequest){
         Comment comment = new Comment();
         comment.setPostId(commentRequest.getPostId());
         comment.setParentId(commentRequest.getParentId());
@@ -54,24 +59,38 @@ public class CommentServiceImpl implements CommentService {
         comment.setRepliedUsername(commentRequest.getRepliedUsername());
         comment.setRepliedUserId(commentRequest.getRepliedUserId());
         comment.setChildCount(0);
+        
+        // 设置评论用户的头像
+        try {
+            TokenUserInfoDto tokenUserInfoDto = redisComponent.getTokenUserInfoDto(commentRequest.getToken());
+            comment.setAvatar(tokenUserInfoDto.getAvatar());
+        } catch (Exception e) {
+            // 如果获取头像失败，使用默认头像
+            comment.setAvatar("/defaultImg/ottomans.png");
+        }
         commentMapper.insert(comment);
         if(comment.getParentId()!=-1){
             changeCommentChildCount(comment.getParentId(),1);
         }else{
             changePostCommentCount(comment.getPostId(),1);
         }
-
+        if(commentRequest.getRepliedUserId().equals(comment.getUserId())){
+            return comment;
+        }
         CommentNoticeDto commentNoticeDto =  new CommentNoticeDto();
         commentNoticeDto.setCommentId(comment.getCommentId());
         commentNoticeDto.setRepliedUserId(commentRequest.getRepliedUserId());
         commentNoticeDto.setUserId(commentRequest.getUserId());
+        commentNoticeDto.setPostId(comment.getPostId()); // 设置帖子ID
         String json = null;
         try {
             json = objectMapper.writeValueAsString(commentNoticeDto);
         } catch (Exception e) {
-            return;
+            return comment;
         }
         rabbitTemplate.convertAndSend("notice.exchange","notice.comment",json);
+        
+        return comment;
     }
 
     @Override
@@ -128,7 +147,11 @@ public class CommentServiceImpl implements CommentService {
                 .collect(Collectors.groupingBy(Comment::getParentId));
         Map<Long,List<Comment>> result = new HashMap<>();
         for (Map.Entry<Long, List<Comment>> entry : grouped.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().stream().limit(limit).collect(Collectors.toList()));
+            // 由于SQL已经按时间排序，这里只需要取前limit条
+            List<Comment> sortedComments = entry.getValue().stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+            result.put(entry.getKey(), sortedComments);
         }
         return result;
     }

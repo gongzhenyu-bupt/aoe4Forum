@@ -80,6 +80,7 @@ public class PostServiceImpl implements PostService {
             TokenUserInfoDto tokenUserInfoDto =  redisComponent.getTokenUserInfoDto(createPostRequest.getToken());
             post.setUserId(tokenUserInfoDto.getId());
             post.setUserName(tokenUserInfoDto.getName());
+            post.setAvatar(tokenUserInfoDto.getAvatar());
         }catch (Exception e){
             throw new  BusinessException("token无效");
         }
@@ -231,7 +232,7 @@ public class PostServiceImpl implements PostService {
 
         return post;
     }
-//TODO like逻辑问题
+
     @Override
     public void likePost(PostRequest postRequest) {
         Long postId = postRequest.getPostId();
@@ -365,12 +366,22 @@ public class PostServiceImpl implements PostService {
     }
 
     private String getPostAbstract(String content){
-        if (content == null) return " ";
-        // 去除HTML标签
-        String plainText = content.replaceAll("<[^>]*>", "");
-        // 去除多余空白
-        plainText = plainText.replaceAll("\\s+", "");
-        // 截取前50个字符
-        return plainText.length() > 50 ? plainText.substring(0, 50) : plainText;
+        if(content==null||content.isEmpty()){
+            return null;
+        }
+        if(content.length()<=100){
+            return content;
+        }
+        return content.substring(0,100)+"...";
+    }
+    
+    @Override
+    public List<Post> queryPostsByUserId(Long userId, int offset, int limit) {
+        return postMapper.queryPostsByUserId(userId, offset, limit);
+    }
+    
+    @Override
+    public int countPostsByUserId(Long userId) {
+        return postMapper.countPostsByUserId(userId);
     }
 }

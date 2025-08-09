@@ -5,29 +5,105 @@
         <TopBar />
       </div>
     </header>
+    
     <div class="notice-main">
       <aside class="notice-sidebar">
-        <ul>
-          <li :class="{active: activeTab === 'reply'}" @click="handleTab('reply')">回复我的</li>
-          <li :class="{active: activeTab === 'like'}" @click="handleTab('like')">收到的赞</li>
-          <li :class="{active: activeTab === 'fan'}" @click="handleTab('fan')">新增粉丝</li>
-        </ul>
-      </aside>
-      <main class="notice-content">
-        <div v-if="loading" class="empty-data">加载中...</div>
-        <div v-else-if="noticeList.length === 0" class="empty-data">
-          <img src="https://img.alicdn.com/imgextra/i2/O1CN01Qn1QwC1w6QwZpUKlA_!!6000000006312-2-tps-400-300.png" alt="no data" class="empty-img" />
-          <div class="empty-text">然而并没有数据</div>
+        <div class="sidebar-header">
+          <h3>消息中心</h3>
         </div>
-        <ul v-else class="notice-list">
-          <li v-for="notice in noticeList" :key="notice.id" class="notice-item"
-              :class="{ clickable: activeTab === 'fan' }"
-              @click="activeTab === 'fan' ? goToUser(notice) : null">
-            <span v-if="notice.avatar" class="notice-avatar"><img :src="notice.avatar" alt="avatar" /></span>
-            <span class="notice-nickname" v-if="notice.nickname">{{ notice.nickname }}</span>
-            <span class="notice-content-text">{{ notice.content || notice.msg || '暂无内容' }}</span>
+        <ul class="sidebar-tabs">
+          <li 
+            :class="{active: activeTab === 'reply'}" 
+            @click="handleTab('reply')"
+            class="tab-item"
+          >
+            <div class="tab-icon">💬</div>
+            <div class="tab-content">
+              <span class="tab-title">回复我的</span>
+              <span class="tab-desc">评论和回复通知</span>
+            </div>
+          </li>
+          <li 
+            :class="{active: activeTab === 'like'}" 
+            @click="handleTab('like')"
+            class="tab-item"
+          >
+            <div class="tab-icon">👍</div>
+            <div class="tab-content">
+              <span class="tab-title">收到的赞</span>
+              <span class="tab-desc">点赞通知</span>
+            </div>
+          </li>
+          <li 
+            :class="{active: activeTab === 'fan'}" 
+            @click="handleTab('fan')"
+            class="tab-item"
+          >
+            <div class="tab-icon">👥</div>
+            <div class="tab-content">
+              <span class="tab-title">新增粉丝</span>
+              <span class="tab-desc">关注通知</span>
+            </div>
           </li>
         </ul>
+      </aside>
+      
+      <main class="notice-content">
+        <div class="content-header">
+          <h2>{{ getTabTitle() }}</h2>
+          <span class="notice-count">{{ noticeList.length }} 条消息</span>
+        </div>
+        
+        <div v-if="loading" class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>加载中...</p>
+        </div>
+        
+        <div v-else-if="noticeList.length === 0" class="empty-container">
+          <div class="empty-icon">📭</div>
+          <h3>暂无消息</h3>
+          <p>当有人回复、点赞或关注你时，消息会显示在这里</p>
+        </div>
+        
+        <div v-else class="notice-list">
+          <div 
+            v-for="notice in noticeList" 
+            :key="notice.id" 
+            class="notice-item"
+            :class="{ clickable: activeTab === 'fan' || activeTab === 'reply' }"
+            @click="handleNoticeClick(notice)"
+          >
+            <div class="notice-avatar">
+              <img 
+                v-if="notice.avatar" 
+                :src="getAvatarUrl(notice.avatar)" 
+                :alt="notice.nickname || '用户'"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ (notice.nickname || '用户').charAt(0) }}
+              </div>
+            </div>
+            
+            <div class="notice-content">
+              <div class="notice-header">
+                <span class="notice-nickname">{{ notice.nickname || '用户' }}</span>
+                <span class="notice-time">{{ formatTime(notice.createTime) }}</span>
+              </div>
+              <div class="notice-message">
+                <span class="message-text">{{ notice.content || notice.msg || '暂无内容' }}</span>
+                <span v-if="activeTab === 'fan'" class="follow-action">关注了你</span>
+              </div>
+            </div>
+            
+            <div class="notice-action">
+              <div class="action-icon">
+                <span v-if="activeTab === 'reply'">💬</span>
+                <span v-else-if="activeTab === 'like'">👍</span>
+                <span v-else-if="activeTab === 'fan'">👥</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -38,6 +114,7 @@ import { ref, onMounted } from 'vue'
 import TopBar from './TopBar.vue'
 import { getLikeNoticesApi, getCommentNoticesApi, getFollowNoticesApi, getProfileApi } from '../utils/api'
 import { useRouter } from 'vue-router'
+
 const router = useRouter()
 
 const activeTab = ref('reply')
@@ -80,9 +157,52 @@ function handleTab(tab: string) {
   fetchNotices()
 }
 
-function goToUser(notice: any) {
+function handleNoticeClick(notice: any) {
   if (notice && notice.businessId) {
-    router.push(`/${notice.businessId}`)
+    if (activeTab.value === 'reply') {
+      // 评论通知：跳转到帖子页面，并传递评论ID作为锚点
+      router.push(`/post/${notice.postId}?commentId=${notice.businessId}`)
+    } else if (activeTab.value === 'fan') {
+      router.push(`/usercenter/${notice.businessId}`)
+    }
+  }
+}
+
+function getTabTitle() {
+  const titles = {
+    reply: '回复我的',
+    like: '收到的赞',
+    fan: '新增粉丝'
+  }
+  return titles[activeTab.value as keyof typeof titles] || '消息'
+}
+
+function getAvatarUrl(avatar: string) {
+  if (!avatar) return ''
+  if (avatar.startsWith('/defaultImg/')) {
+    return `http://127.0.0.1:7071${avatar}`
+  }
+  return `http://127.0.0.1:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
+}
+
+function formatTime(timeStr: string) {
+  if (!timeStr) return ''
+  const time = new Date(timeStr)
+  const now = new Date()
+  const diff = now.getTime() - time.getTime()
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor(diff / (1000 * 60))
+  
+  if (days > 0) {
+    return `${days}天前`
+  } else if (hours > 0) {
+    return `${hours}小时前`
+  } else if (minutes > 0) {
+    return `${minutes}分钟前`
+  } else {
+    return '刚刚'
   }
 }
 
@@ -97,6 +217,7 @@ onMounted(async () => {
   background: #f8fafc;
   min-height: 100vh;
 }
+
 .header {
   position: fixed;
   top: 0;
@@ -107,6 +228,7 @@ onMounted(async () => {
   border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 4px rgba(0,0,0,0.02);
 }
+
 .header-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -115,95 +237,304 @@ onMounted(async () => {
   display: flex;
   align-items: center;
 }
+
 .notice-main {
   display: flex;
-  margin-top: 20px;
-  /* 不要 min-height */
-  min-height: 600px;
+  margin-top: 80px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  min-height: calc(100vh - 100px);
 }
 
 .notice-sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #f0f0f0;
-  padding-top: 8px;
-  box-sizing: border-box;
-  height: 100%;
-  position: static;
+  width: 280px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
 }
-.notice-sidebar ul {
+
+.sidebar-header {
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sidebar-tabs {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-.notice-sidebar li {
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 16px 24px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.tab-item:hover {
+  background: #f1f5f9;
+}
+
+.tab-item.active {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+}
+
+.tab-icon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tab-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.tab-desc {
+  font-size: 12px;
   color: #64748b;
-  font-size: 16px;
-  border-left: 4px solid transparent;
-  transition: background 0.2s, border-color 0.2s;
 }
-.notice-sidebar li.active {
-  background: #e6fcfa;
-  color: #1abc9c;
-  border-left: 4px solid #1abc9c;
-}
+
 .notice-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   background: #fff;
-  min-height: 100%;
-  padding: 32px 32px 0 32px;
-  /* 不要 align-items/justify-content:center */
 }
-.empty-data {
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.content-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.notice-count {
+  font-size: 14px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
   text-align: center;
-  color: #b0b8c9;
 }
-.empty-img {
-  width: 220px;
-  margin-bottom: 12px;
-  opacity: 0.7;
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
 }
-.empty-text {
-  font-size: 15px;
-  color: #b0b8c9;
+
+.empty-container h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
 }
+
+.empty-container p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
 .notice-list {
-  width: 100%;
   padding: 0;
   margin: 0;
-  list-style: none;
 }
+
 .notice-item {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 15px;
-  color: #333;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 32px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.2s ease;
 }
+
+.notice-item:hover {
+  background: #f8fafc;
+}
+
+.notice-item.clickable {
+  cursor: pointer;
+}
+
+.notice-avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .notice-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.notice-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notice-nickname {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.notice-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.notice-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-text {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.follow-action {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.notice-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  object-fit: cover;
+  background: #f1f5f9;
 }
-.notice-nickname {
-  font-weight: 600;
-  color: #1abc9c;
+
+.action-icon {
+  font-size: 14px;
 }
-.notice-content-text {
-  color: #64748b;
-}
-.notice-item.clickable {
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.notice-item.clickable:hover {
-  background: #f8fafc;
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .notice-main {
+    flex-direction: column;
+    margin: 80px 16px 16px 16px;
+  }
+  
+  .notice-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .sidebar-tabs {
+    display: flex;
+    overflow-x: auto;
+  }
+  
+  .tab-item {
+    flex-shrink: 0;
+    min-width: 120px;
+  }
+  
+  .content-header {
+    padding: 16px 20px;
+  }
+  
+  .notice-item {
+    padding: 16px 20px;
+  }
 }
 </style> 

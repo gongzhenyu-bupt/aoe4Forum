@@ -94,6 +94,10 @@ async function goUserCenter() {
 function getImageUrl(path: string): string {
   if (!path) return DEFAULT_AVATAR
   if (/^https?:\/\//.test(path)) return path
+  // 判断是否是默认头像路径
+  if (path.startsWith('/defaultImg/')) {
+    return `http://127.0.0.1:7071${path}`
+  }
   const filename = path.replace(/\\/g, '/').split('/').pop()
   return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : DEFAULT_AVATAR
 }

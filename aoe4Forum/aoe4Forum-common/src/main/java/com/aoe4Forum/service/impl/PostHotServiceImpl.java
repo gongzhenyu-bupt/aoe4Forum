@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -147,6 +148,7 @@ public class PostHotServiceImpl implements PostHotService {
                 list.add(updateDto);
             }
         }
+        if(list.isEmpty()) return;
         postMapper.batchUpdatePostCounts(list);
         log.info("帖子计数持久化完毕，{} 条写入成功", list.size());
     }

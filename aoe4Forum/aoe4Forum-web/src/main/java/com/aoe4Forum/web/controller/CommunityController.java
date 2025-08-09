@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @CrossOrigin
 @RestController
@@ -95,6 +96,8 @@ public class CommunityController extends ABaseController{
         return  ResponseVO.success("查询成功",posts);
     }
 
+    
+
     @GetMapping("/queryPostContent")
     public ResponseVO<PostContent> queryPostContent(long postId){
         PostContent postcontent = postServiceImpl.queryPostContent(postId);
@@ -107,12 +110,12 @@ public class CommunityController extends ABaseController{
     CommentServiceImpl commentServiceImpl;
 
     @PostMapping("/createComment")
-    public ResponseVO<Map<String,String>> CreateComment(@Valid @RequestBody CommentRequest commentRequest,
+    public ResponseVO<Comment> CreateComment(@Valid @RequestBody CommentRequest commentRequest,
                                                         HttpServletRequest request
                                                         ){
         setRequestParams(request,commentRequest);
-        commentServiceImpl.createComment(commentRequest);
-        return ResponseVO.success("评论成功",null);
+        Comment newComment = commentServiceImpl.createComment(commentRequest);
+        return ResponseVO.success("评论成功",newComment);
     }
 
     @GetMapping("/deleteComment")
@@ -205,5 +208,24 @@ public class CommunityController extends ABaseController{
             postServiceImpl.dislikePost(postRequest);
         }
         return ResponseVO.success();
+    }
+    
+    @GetMapping("/queryPostsByUserId")
+    public ResponseVO<Map<String, Object>> queryPostsByUserId(@RequestParam Long userId,
+                                                              @RequestParam(defaultValue = "0") int offset,
+                                                              @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<Post> posts = postServiceImpl.queryPostsByUserId(userId, offset, limit);
+            int totalCount = postServiceImpl.countPostsByUserId(userId);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("posts", posts);
+            result.put("totalCount", totalCount);
+            result.put("hasMore", offset + limit < totalCount);
+            
+            return ResponseVO.success("查询成功", result);
+        } catch (Exception e) {
+            return ResponseVO.error("500", "查询失败：" + e.getMessage());
+        }
     }
 }

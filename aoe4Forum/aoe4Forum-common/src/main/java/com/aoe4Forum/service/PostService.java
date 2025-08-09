@@ -19,4 +19,10 @@ public interface PostService {
     PostContent queryPostContent(long postId);
     void likePost(PostRequest postRequest);
     void dislikePost(PostRequest postRequest);
+    
+    // 查询用户发布的帖子
+    List<Post> queryPostsByUserId(Long userId, int offset, int limit);
+    
+    // 统计用户发布的帖子数量
+    int countPostsByUserId(Long userId);
 }

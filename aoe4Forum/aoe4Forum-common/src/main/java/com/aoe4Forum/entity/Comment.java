@@ -16,6 +16,7 @@ public class Comment {
     private Integer status;
     private String username;
     private Long userId;
+    private String avatar; // 用户头像
     private String repliedUsername;
     private Long repliedUserId;
     private Integer childCount;

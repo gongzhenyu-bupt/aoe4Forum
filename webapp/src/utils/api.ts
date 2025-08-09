@@ -101,7 +101,7 @@ export async function getCommentsByPostIdApi(postId: number, offset = 0, limit =
 }
 
 // 发表评论API
-export async function createCommentApi(data: { postId: number; content: string; parentId?: number; repliedUserId?: number; repliedUsername?: string }): Promise<any> {
+export async function createCommentApi(data: { postId: number; content: string; parentId?: number; repliedUserId?: number; repliedUsername?: string; token?: string }): Promise<any> {
   return request('/community/createComment', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -303,8 +303,15 @@ export async function getFollowNoticesApi(params: { userId: number, lastId?: num
 
 // 点赞/点踩帖子API
 export async function likePostApi(params: { postId: number, type: number}): Promise<any> {
-  const query = `postId=${params.postId}&type=${params.type}`
-  return request(`/community/likePost?${query}`, {
+  return request(`/community/likePost?postId=${params.postId}&type=${params.type}`, {
+    method: 'GET',
+  })
+}
+
+// 查询用户发布的帖子API
+export async function queryPostsByUserIdApi(params: { userId: number, offset?: number, limit?: number }): Promise<any> {
+  const { userId, offset = 0, limit = 10 } = params
+  return request(`/community/queryPostsByUserId?userId=${userId}&offset=${offset}&limit=${limit}`, {
     method: 'GET',
   })
 }

@@ -19,7 +19,13 @@
           <div class="article-header">
             <div class="author-info">
               <div class="author-avatar">
-                <span>{{ post.userName?.charAt(0) || '?' }}</span>
+                <img 
+                  v-if="post.avatar" 
+                  :src="getAvatarUrl(post.avatar)" 
+                  :alt="post.userName"
+                  class="avatar-img"
+                />
+                <span v-else>{{ post.userName?.charAt(0) || '?' }}</span>
               </div>
               <div class="author-details">
                 <span class="author-name">{{ post.userName }}</span>
@@ -68,6 +74,18 @@ let lastId = ref<string>('')
 let lastCreateTime = ref<string>('')
 let userId = ref<number | null>(null)
 const router = useRouter()
+
+// 获取头像URL
+const getAvatarUrl = (avatar: string) => {
+  if (!avatar) return 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
+  // 判断是否是默认头像路径
+  if (avatar.startsWith('/defaultImg/')) {
+    return `http://127.0.0.1:7071${avatar}`
+  }
+  // 只取文件名，拼接为Spring Boot静态资源URL
+  const filename = avatar.replace(/\\/g, '/').split('/').pop()
+  return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
+}
 
 function formatTime(time: string) {
   if (!time) return ''
@@ -208,6 +226,13 @@ onMounted(async () => {
   justify-content: center;
   color: white;
   font-weight: 600;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .author-details {
   display: flex;

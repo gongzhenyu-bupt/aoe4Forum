@@ -12,6 +12,7 @@ import com.aoe4Forum.entity.notice.LikeNotice;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.NoticeService;
 import com.aoe4Forum.service.PostService;
+import com.aoe4Forum.service.impl.CommentNoticeServiceImpl;
 import com.aoe4Forum.utils.SnowflakeIdGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -27,7 +28,7 @@ public class NoticeListener {
     private NoticeService<LikeNotice> likeNoticeService;
 
     @Autowired
-    private NoticeService<CommentNotice> commentNoticeService;
+    private CommentNoticeServiceImpl commentNoticeService;
 
     @Autowired
     private NoticeService<FollowNotice> followNoticeService;
@@ -93,8 +94,9 @@ public class NoticeListener {
         Long businessId = dto.getCommentId();
         Long userId = dto.getRepliedUserId();
         Long senderId = dto.getUserId();
+        Long postId = dto.getPostId(); // 获取帖子ID
 
-        CommentNotice notice = commentNoticeService.createNotice(businessId, idGenerator.nextId(), LocalDateTime.now());
+        CommentNotice notice = commentNoticeService.createNoticeWithPostId(businessId, idGenerator.nextId(), LocalDateTime.now(), postId);
         notice.setUserId(userId);
         notice.setSenderId(senderId);
         commentNoticeService.insert(notice);

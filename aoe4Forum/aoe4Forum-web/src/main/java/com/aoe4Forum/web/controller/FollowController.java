@@ -8,10 +8,7 @@ import com.aoe4Forum.entity.dto.FollowQueryResult;
 import com.aoe4Forum.service.impl.FollowServiceImpl;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -29,7 +26,7 @@ public class FollowController {
     private FollowServiceImpl followServiceimpl;
 
 //    用户关注另一个用户（写操作）
-    @GetMapping("/follow")
+    @PostMapping("/follow")
     public ResponseVO<Map<String,String>> follow(Long followerId, Long followeeId, HttpServletRequest request) {
         Long requestUserId = (Long) request.getAttribute("userId");
         if(Objects.equals(followerId, followeeId)){
@@ -46,7 +43,7 @@ public class FollowController {
         return ResponseVO.success();
     }
 //    用户取关另一个用户（写操作）
-    @GetMapping("/unfollow")
+    @PostMapping("/unfollow")
     public ResponseVO<Map<String,String>> unfollow(Long followerId, Long followeeId, HttpServletRequest request){
         Long requestUserId = (Long) request.getAttribute("userId");
         if(Objects.equals(followerId, followeeId)){

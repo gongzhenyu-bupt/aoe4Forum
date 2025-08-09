@@ -42,4 +42,10 @@ public interface PostMapper {
     void updateCommentCount(@Param("postId") Long postId, @Param("commentCount") int commentCount);
 
     void batchUpdatePostCounts(@Param("list") List<PostCountDto> postCountList);
+
+    // 查询用户发布的帖子
+    List<Post> queryPostsByUserId(@Param("userId") Long userId, @Param("offset") int offset, @Param("limit") int limit);
+
+    // 统计用户发布的帖子数量
+    int countPostsByUserId(@Param("userId") Long userId);
 }

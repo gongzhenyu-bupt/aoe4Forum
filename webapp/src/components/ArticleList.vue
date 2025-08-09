@@ -60,18 +60,22 @@
                 @click="viewArticle(article)"
               >
                 <div class="article-header">
-                  <div class="author-info">
-                    <div class="author-avatar">
-                      <span>{{ article.userName.charAt(0) }}</span>
-                    </div>
+                                     <div class="author-info">
+                     <div class="author-avatar">
+                       <img 
+                         v-if="article.avatar" 
+                         :src="getAvatarUrlSync(article.avatar)" 
+                         :alt="article.userName"
+                         class="avatar-img"
+                       />
+                       <span v-else>{{ article.userName.charAt(0) }}</span>
+                     </div>
                     <div class="author-details">
                       <span class="author-name">{{ article.userName }}</span>
                       <span class="publish-time">{{ formatTime(article.createTime) }}</span>
                     </div>
                   </div>
                   <div class="article-tags">
-                    <span class="tag vue">Vue.js</span>
-                    <span class="tag spring">SpringBoot</span>
                     <span v-if="article.status === 1" class="tag featured">置顶</span>
                   </div>
                 </div>
@@ -159,6 +163,7 @@ import TopBar from './TopBar.vue'
 import AuthModal from './AuthModal.vue'
 import { getArticlesApi, getHotArticlesApi, getProfileApi } from '../utils/api'
 import type { Article } from '../types/api'
+import AvatarCache from '../utils/avatarCache'
 
 // 注入全局方法
 const openAuthModal = inject('openAuthModal') as () => void
@@ -377,6 +382,21 @@ const formatNumber = (num: number) => {
     return `${(num / 1000).toFixed(1)}k`
   }
   return num.toString()
+}
+
+// 获取头像URL（使用缓存）
+const getAvatarUrl = async (avatar: string) => {
+  if (!avatar) return defaultAvatar
+  return await AvatarCache.getAvatarUrl(avatar)
+}
+
+// 同步获取头像URL（用于模板）
+const getAvatarUrlSync = (avatar: string) => {
+  if (!avatar) return defaultAvatar
+  // 这里可以添加一个简单的缓存检查，但主要依赖AvatarCache的内部缓存
+  return avatar.startsWith('/defaultImg/') 
+    ? `http://127.0.0.1:7071${avatar}` 
+    : `http://127.0.0.1:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
 }
 
 async function checkLogin() {
@@ -679,6 +699,13 @@ onUnmounted(() => {
   justify-content: center;
   color: white;
   font-weight: 600;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .author-details {
