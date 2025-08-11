@@ -45,7 +45,7 @@ import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { ref, shallowRef, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { createPostApi } from '../utils/api'
+import { createPostApi, uploadImageApi } from '../utils/api'
 
 const router = useRouter()
 const loading = ref(false)
@@ -56,8 +56,63 @@ const form = ref({
   forum: ''
 })
 
-const toolbarConfig = {}
-const editorConfig = { placeholder: '请输入内容...' }
+const toolbarConfig = {
+  excludeKeys: []
+}
+
+const editorConfig = { 
+  placeholder: '请输入内容...',
+  MENU_CONF: {
+    uploadImage: {
+      server: 'http://127.0.0.1:7071/upload/image',
+      fieldName: 'file',
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      maxNumberOfFiles: 10,
+      allowedFileTypes: ['image/*'],
+      meta: {
+        token: localStorage.getItem('token') || ''
+      },
+      metaWithUrl: true,
+      withCredentials: true,
+      timeout: 5 * 1000, // 5s
+      onBeforeUpload(file: File) {
+        console.log('准备上传图片:', file.name)
+        return file
+      },
+      onProgress(progress: number) {
+        console.log('上传进度:', progress + '%')
+      },
+      onSuccess(file: File, res: any) {
+        console.log('图片上传成功:', file.name, res)
+      },
+      onFailed(file: File, res: any) {
+        console.log('图片上传失败:', file.name, res)
+        ElMessage.error('图片上传失败')
+      },
+      onError(file: File, err: any, res: any) {
+        console.log('图片上传出错:', file.name, err, res)
+        ElMessage.error('图片上传出错')
+      },
+      customInsert(res: any, insertFn: any) {
+        const backendUrl = 'http://localhost:7071' // 你的后端地址
+        if (res.code === 0 || res.code === '0') {
+          let imageUrl = res.data
+          if (imageUrl && !imageUrl.startsWith('http')) {
+            imageUrl = backendUrl + imageUrl
+          }
+          if (imageUrl) {
+            insertFn(imageUrl, '', '')
+            ElMessage.success('图片插入成功')
+          } else {
+            ElMessage.error('图片上传成功但未获取到图片地址')
+          }
+        } else {
+          ElMessage.error(res.message || '图片上传失败')
+        }
+      }
+    }
+  }
+}
 const mode = 'default'
 
 const handleCreated = (editor: any) => {

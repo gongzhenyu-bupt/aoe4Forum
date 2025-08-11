@@ -99,6 +99,18 @@ onMounted(async () => {
   
   // 处理评论定位
   handleCommentFocus()
+
+  // 动态移除图片内联宽度
+  nextTick(() => {
+    const imgs = document.querySelectorAll('.post-content img');
+    imgs.forEach(img => {
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+      img.style.width = '';
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+    });
+  });
 })
 
 function goToUserCenter(userid: number|string) {
@@ -196,5 +208,11 @@ function refreshPostInfo() {
   line-height: 1.8;
   text-align: left;
   margin-bottom: 48px;
+}
+.post-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 12px auto;
 }
 </style> 

@@ -132,17 +132,38 @@ export async function getCommentsByParentIdsApi(parentIds: number[]): Promise<{ 
 
 // 上传头像API
 export async function uploadAvatarApi(file: File): Promise<any> {
-  const formData = new FormData();
-  formData.append('multipartFile', file);
+  const formData = new FormData()
+  formData.append('file', file)
+  
   const response = await fetch(`${API_BASE_URL}/account/uploadAvatar`, {
     method: 'POST',
     body: formData,
-    credentials: 'include',
-  });
+    credentials: 'include'
+  })
+
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
-  return response.json();
+
+  return response.json()
+}
+
+// 上传图片API（用于发帖）
+export async function uploadImageApi(file: File): Promise<any> {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include'
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
 }
 
 // 确认更换头像API
@@ -312,6 +333,13 @@ export async function likePostApi(params: { postId: number, type: number}): Prom
 export async function queryPostsByUserIdApi(params: { userId: number, offset?: number, limit?: number }): Promise<any> {
   const { userId, offset = 0, limit = 10 } = params
   return request(`/community/queryPostsByUserId?userId=${userId}&offset=${offset}&limit=${limit}`, {
+    method: 'GET',
+  })
+}
+
+// 搜索帖子API
+export async function searchPostsApi(keyword: string): Promise<any> {
+  return request(`/search?keyword=${encodeURIComponent(keyword)}`, {
     method: 'GET',
   })
 }

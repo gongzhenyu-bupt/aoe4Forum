@@ -1,6 +1,5 @@
 package com.aoe4Forum.redis;
 
-import org.elasticsearch.common.recycler.Recycler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;

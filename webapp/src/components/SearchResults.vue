@@ -1,20 +1,24 @@
 <template>
-  <div class="trends-wrapper">
-    <header class="header">
-      <div class="header-container">
-        <TopBar />
+  <div class="search-page">
+    <!-- 添加顶部栏 -->
+    <TopBar />
+    
+    <div class="search-results">
+      <div class="search-header">
+        <h2>搜索结果</h2>
+        <p v-if="keyword">关键词: "{{ keyword }}"</p>
+        <p v-if="results.length > 0">找到 {{ results.length }} 个结果</p>
+        <p v-else-if="!loading">没有找到相关结果</p>
       </div>
-    </header>
-    <h2>关注动态</h2>
-    <div v-if="loading" class="loading">加载中...</div>
-    <div v-else>
-      <div v-if="posts.length === 0" class="empty">暂无动态</div>
-      <div v-else class="article-list">
+
+      <div v-if="loading" class="loading">搜索中...</div>
+
+      <div v-else-if="results.length > 0" class="results-list">
         <article 
-          v-for="post in posts" 
-          :key="post.id"
+          v-for="post in results" 
+          :key="post.id" 
           class="article-item"
-          @click="viewPost(post)"
+          @click="goToPost(post.id)"
         >
           <div class="article-header">
             <div class="author-info">
@@ -45,35 +49,63 @@
           </div>
           <div class="article-footer">
             <div class="article-stats">
-              <span class="stat-item">👁 {{ post.pageViewCount }}</span>
-              <span class="stat-item">👍 {{ post.likeCount }}</span>
-              <span class="stat-item">💬 {{ post.commentCount }}</span>
+              <span class="stat-item">👁 {{ post.pageViewCount || 0 }}</span>
+              <span class="stat-item">👍 {{ post.likeCount || 0 }}</span>
+              <span class="stat-item">💬 {{ post.commentCount || 0 }}</span>
             </div>
           </div>
         </article>
       </div>
-      <div v-if="hasMore && !loading" class="load-more">
-        <button @click="loadMore">加载更多</button>
+
+      <div v-else class="no-results">
+        <p>没有找到包含 "{{ keyword }}" 的帖子</p>
+        <p>请尝试其他关键词</p>
       </div>
-      <div v-else class="no-more">没有更多了</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { pullFeedApi } from '../utils/api'
-import { getProfileApi } from '../utils/api'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { searchPostsApi } from '../utils/api'
 import TopBar from './TopBar.vue'
 
-const posts = ref<any[]>([])
-const loading = ref(true)
-const hasMore = ref(true)
-let lastId = ref<string>('')
-let lastCreateTime = ref<string>('')
-let userId = ref<number | null>(null)
+const route = useRoute()
 const router = useRouter()
+const keyword = ref('')
+const results = ref<any[]>([])
+const loading = ref(false)
+
+onMounted(() => {
+  const searchKeyword = route.query.keyword as string
+  if (searchKeyword) {
+    keyword.value = searchKeyword
+    performSearch(searchKeyword)
+  }
+})
+
+async function performSearch(searchKeyword: string) {
+  loading.value = true
+  try {
+    const response = await searchPostsApi(searchKeyword)
+    if (response.code === 0 || response.code === '0') {
+      results.value = response.data || []
+    } else {
+      console.error('搜索失败:', response.message)
+      results.value = []
+    }
+  } catch (error) {
+    console.error('搜索出错:', error)
+    results.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function goToPost(postId: number) {
+  router.push(`/post/${postId}`)
+}
 
 // 获取头像URL
 const getAvatarUrl = (avatar: string) => {
@@ -87,9 +119,9 @@ const getAvatarUrl = (avatar: string) => {
   return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
 }
 
-function formatTime(time: string) {
-  if (!time) return ''
-  return time.replace('T', ' ').slice(0, 19)
+function formatTime(timeString: string) {
+  if (!timeString) return ''
+  return timeString.replace('T', ' ').slice(0, 19)
 }
 
 // 获取论坛标签文本
@@ -109,59 +141,15 @@ const getForumLabel = (forum: string) => {
       return forum
   }
 }
-
-async function fetchUserId() {
-  // 优先本地缓存
-  const cached = localStorage.getItem('userid')
-  if (cached) return Number(cached)
-  // 拉取 profile
-  const res = await getProfileApi()
-  if ((res.code === 0 || res.code === '0') && res.data && res.data.id) {
-    localStorage.setItem('userid', res.data.id)
-    return res.data.id
-  }
-  return null
-}
-
-async function fetchFeed(isInit = false) {
-  if (!userId.value) return
-  loading.value = true
-  const params: any = {
-    userId: userId.value,
-    lastId: lastId.value,
-    lastCreateTime: lastCreateTime.value,
-  }
-  const res: any = await pullFeedApi(params)
-  if (res.code === '0' && res.data && res.data.posts) {
-    if (isInit) posts.value = []
-    posts.value.push(...res.data.posts)
-    lastId.value = res.data.lastId
-    lastCreateTime.value = res.data.lastCreateTime
-    hasMore.value = res.data.posts.length > 0
-  } else {
-    hasMore.value = false
-  }
-  loading.value = false
-}
-
-async function loadMore() {
-  await fetchFeed(false)
-}
-
-function viewPost(post: any) {
-  router.push(`/post/${post.id}`)
-}
-
-onMounted(async () => {
-  userId.value = await fetchUserId()
-  lastId.value = ''
-  lastCreateTime.value = ''
-  await fetchFeed(true)
-})
 </script>
 
 <style scoped>
-.trends-wrapper {
+.search-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.search-results {
   max-width: 700px;
   margin: 32px auto;
   background: #fff;
@@ -169,48 +157,41 @@ onMounted(async () => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   padding: 32px 24px;
 }
-.post-item {
-  border-bottom: 1px solid #eee;
-  padding: 16px 0;
+
+.search-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
 }
-.post-title {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 8px;
+
+.search-header h2 {
+  margin: 0 0 10px 0;
+  color: #1f2937;
 }
-.post-meta {
-  color: #888;
-  font-size: 14px;
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
+
+.search-header p {
+  margin: 5px 0;
+  color: #6b7280;
 }
-.loading, .empty, .no-more {
+
+.loading, .no-results {
   text-align: center;
   color: #888;
   margin: 24px 0;
 }
-.load-more {
-  text-align: center;
-  margin: 24px 0;
+
+.no-results p {
+  margin: 10px 0;
 }
-.load-more button {
-  background: #3b82f6;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 24px;
-  font-size: 16px;
-  cursor: pointer;
-}
-.load-more button:hover {
-  background: #2563eb;
-}
-.article-list {
+
+.results-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .article-item {
   background: white;
   border-radius: 12px;
@@ -219,21 +200,25 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .article-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
 .article-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 12px;
 }
+
 .author-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .author-avatar {
   width: 40px;
   height: 40px;
@@ -252,25 +237,30 @@ onMounted(async () => {
   height: 100%;
   object-fit: cover;
 }
+
 .author-details {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .author-name {
   font-weight: 600;
   color: #1e293b;
   font-size: 14px;
 }
+
 .publish-time {
   font-size: 12px;
   color: #64748b;
 }
+
 .article-tags {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
+
 .tag {
   padding: 4px 8px;
   border-radius: 4px;
@@ -279,13 +269,16 @@ onMounted(async () => {
   background: #f1f5f9;
   color: #64748b;
 }
+
 .tag.featured {
   background: #fef3c7;
   color: #d97706;
 }
+
 .article-content {
   margin-bottom: 16px;
 }
+
 .article-title {
   font-size: 18px;
   font-weight: 600;
@@ -293,20 +286,24 @@ onMounted(async () => {
   margin-bottom: 8px;
   line-height: 1.4;
 }
+
 .article-excerpt {
   font-size: 14px;
   color: #64748b;
   line-height: 1.6;
 }
+
 .article-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .article-stats {
   display: flex;
   gap: 16px;
 }
+
 .stat-item {
   font-size: 13px;
   color: #64748b;
@@ -314,4 +311,4 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
 }
-</style> 
+</style>

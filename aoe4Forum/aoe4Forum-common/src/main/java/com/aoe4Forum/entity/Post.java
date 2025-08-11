@@ -1,7 +1,6 @@
 package com.aoe4Forum.entity;
 
 import lombok.Data;
-import org.joda.time.DateTime;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;

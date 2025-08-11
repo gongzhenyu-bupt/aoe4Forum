@@ -162,7 +162,31 @@ public class CommentServiceImpl implements CommentService {
 
     private void changePostCommentCount(Long postId,Integer delta){
         postRedisService.changeCount(postId,"comment",delta);
-        postRedisService.setLastCommentTime(postId,LocalDateTime.now());
+        // 更新最新评论时间
+        LocalDateTime now = LocalDateTime.now();
+        postRedisService.setLastCommentTime(postId, now);
+
+        // 同步更新论坛帖子有序集合的分数，保证按最新评论时间排序
+        try {
+            String forum;
+            // 优先从缓存中取论坛名
+            com.aoe4Forum.entity.Post cachedPost = postRedisService.queryPostByIdFromRedis(postId);
+            if (cachedPost != null && cachedPost.getForum() != null) {
+                forum = cachedPost.getForum();
+            } else {
+                // 回源数据库获取论坛名
+                List<com.aoe4Forum.entity.Post> posts = postMapper.queryPostById(postId);
+                if (posts == null || posts.isEmpty()) return;
+                forum = posts.get(0).getForum();
+            }
+            com.aoe4Forum.entity.Post temp = new com.aoe4Forum.entity.Post();
+            temp.setId(postId);
+            temp.setLastCommentTime(now);
+            // 更新对应板块与 all 的有序集合分数
+            postRedisService.cachePostIdByForum(forum, temp);
+            postRedisService.cachePostIdByForum("all", temp);
+        } catch (Exception ignored) {
+        }
     }
 
     boolean verifyComment(Comment comment){

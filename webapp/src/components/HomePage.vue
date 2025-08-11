@@ -217,7 +217,21 @@ const checkLoginAndGetUserInfo = async () => {
 
 // 跳转到个人中心
 const goToUserCenter = () => {
-  router.push('/user')
+  // 从localStorage中获取userid
+  const userid = localStorage.getItem('userid')
+  if (userid) {
+    router.push(`/${userid}`)
+  } else {
+    // 如果没有userid，尝试从用户信息中获取
+    if (userInfo.value && userInfo.value.id) {
+      localStorage.setItem('userid', userInfo.value.id.toString())
+      router.push(`/${userInfo.value.id}`)
+    } else {
+      // 如果都没有，可以显示错误提示或跳转到默认页面
+      console.error('无法获取用户ID')
+      router.push('/')
+    }
+  }
 }
 
 // 处理登录成功

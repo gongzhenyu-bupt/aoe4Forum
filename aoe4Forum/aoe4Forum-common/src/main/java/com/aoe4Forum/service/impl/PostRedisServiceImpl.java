@@ -108,11 +108,13 @@ public class PostRedisServiceImpl implements PostRedisService {
 //查论坛名的前十个帖子id
     @Override
     public List<Long> queryPostIdsByForumFromRedis(String forumName){
-        Set<String> result =  redisUtils.zRange(Constants.REDIS_POST_LIST_FORUM+forumName,0,10);
+        // 倒序取分数最高的前10条，保证最新评论在前
+        Set<String> result =  redisUtils.zReverseRange(Constants.REDIS_POST_LIST_FORUM + forumName, 0, 9);
+        if (result == null || result.isEmpty()) {
+            return null;
+        }
         List<Long> postIds = new ArrayList<>();
-        result.forEach(postId->{
-            postIds.add(Long.parseLong(postId));
-        });
+        result.forEach(postId -> postIds.add(Long.parseLong(postId)));
         return postIds;
     }
 
@@ -122,7 +124,9 @@ public class PostRedisServiceImpl implements PostRedisService {
         if(page>5){
             return null;
         }
-        Set<String> result =  redisUtils.zRange(Constants.REDIS_POST_LIST_HOT,(page-1)* 10L,page* 10L);
+        long start = (long) (page - 1) * 10L;
+        long end = start + 9;
+        Set<String> result =  redisUtils.zReverseRange(Constants.REDIS_POST_LIST_HOT, start, end);
         if(result==null||result.isEmpty()){
             return null;
         }

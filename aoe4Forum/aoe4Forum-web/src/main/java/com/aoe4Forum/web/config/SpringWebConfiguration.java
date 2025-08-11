@@ -29,7 +29,7 @@ public class SpringWebConfiguration implements WebMvcConfigurer {
                 "/community/queryPostContent", "/community/queryPostByHot", "/community/queryPostByForum",
                 "/community/getComment","/community/getCommentsByPostId","/community/getCommentsByParentId",
                 "/community/getCommentsByParentIds","/swagger-ui/**","/v3/**","/community/queryPostById","/avatarImg/**",
-                "/defaultImg/**"
+                "/defaultImg/**","/admin/**","/search","/tempImg/**"
         );
     }
 
@@ -41,6 +41,8 @@ public class SpringWebConfiguration implements WebMvcConfigurer {
                 .addResourceLocations("file:C:/Users/81595/Desktop/all/avatarImg/");
         registry.addResourceHandler("/defaultImg/**")
                 .addResourceLocations("file:C:/Users/81595/Desktop/all/defaultImg/");
+        registry.addResourceHandler("/postImg/**")
+                .addResourceLocations("file:C:/Users/81595/Desktop/all/postImg/");
     }
 }
 

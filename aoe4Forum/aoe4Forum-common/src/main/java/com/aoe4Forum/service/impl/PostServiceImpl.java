@@ -3,6 +3,8 @@ package com.aoe4Forum.service.impl;
 import com.aoe4Forum.component.RedisComponent;
 import com.aoe4Forum.entity.Post;
 import com.aoe4Forum.entity.PostContent;
+import com.aoe4Forum.entity.PostDocument;
+import com.aoe4Forum.entity.PostImage;
 import com.aoe4Forum.entity.constans.Constants;
 import com.aoe4Forum.entity.dto.LikeNoticeDto;
 import com.aoe4Forum.entity.dto.PostCountDto;
@@ -13,8 +15,10 @@ import com.aoe4Forum.entity.request.QueryPostRequest;
 import com.aoe4Forum.entity.dto.TokenUserInfoDto;
 import com.aoe4Forum.exception.BusinessException;
 import com.aoe4Forum.mapper.PostContentMapper;
+import com.aoe4Forum.mapper.PostImageMapper;
 import com.aoe4Forum.mapper.PostMapper;
 import com.aoe4Forum.redis.RedisUtils;
+import com.aoe4Forum.service.ElasticSearchService;
 import com.aoe4Forum.service.PostRedisService;
 import com.aoe4Forum.service.PostService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,11 +28,11 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -51,7 +55,13 @@ public class PostServiceImpl implements PostService {
     @Resource
     private PostRedisService postRedisService;
 
+    @Resource
+    private PostImageMapper postImageMapper;
+
     ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private ElasticSearchService elasticSearchService;
 
     @Override
     public void createPost(CreatePostRequest createPostRequest) {
@@ -90,6 +100,17 @@ public class PostServiceImpl implements PostService {
         if(postId==0){
             throw new  BusinessException("插入失败，获取postId失败");
         }
+        List<String> imageUrls = extractImageUrls(createPostRequest.getContent());
+        for (String imageUrl : imageUrls) {
+            PostImage postImage = new PostImage();
+            postImage.setPostId(post.getId());
+            postImage.setImageUrl(imageUrl);
+            String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+            postImage.setFileName(fileName);
+            postImage.setUploadTime(LocalDateTime.now());
+            // ... 设置其他字段
+            postImageMapper.insert(postImage);
+        }
 //        打包postContent对象
         PostContent postContent = new PostContent();
         postContent.setPostId(postId);
@@ -104,6 +125,10 @@ public class PostServiceImpl implements PostService {
         postRedisService.addPostContentToRedis(postContent);
         postRedisService.cachePostIdByForum(post.getForum(), post);
         postRedisService.cachePostIdByForum("all", post);
+
+//      插入es
+        PostDocument postDocument = new PostDocument(postId,createPostRequest.getTitle(),createPostRequest.getContent());
+        elasticSearchService.save(postDocument);
 //        发mq，推送到feed
         String idAndUserId = post.getId()+":"+post.getUserId();
         rabbitTemplate.convertAndSend("feed.exchange", "feed.push",idAndUserId);
@@ -168,14 +193,14 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<Post> batchQueryPostByIds(List<Long> postIds){
+    public List<Post> batchQueryPostByIds(List<Long> postIds) {
         RedisPostQueryDto redisPostQueryDto = postRedisService.batchQueryPostInfoWithCacheFallback(postIds);
         List<Post> result = new ArrayList<>(redisPostQueryDto.getPosts());
 
         // 更新缓存命中的帖子的动态数据
         for (Post post : result) {
             PostCountDto countDto = postRedisService.queryPostCountFromRedis(post.getId());
-            if(countDto != null){
+            if (countDto != null) {
                 post.setLikeCount(countDto.getLikeCount());
                 post.setDislikeCount(countDto.getDislikeCount());
                 post.setCommentCount(countDto.getCommentCount());
@@ -183,19 +208,30 @@ public class PostServiceImpl implements PostService {
                 post.setLastCommentTime(countDto.getLastCommentTime());
             }
         }
+
         // 处理缓存未命中的帖子
-        if(redisPostQueryDto.getMissedPostIds()!=null&&!redisPostQueryDto.getMissedPostIds().isEmpty()){
+        if (redisPostQueryDto.getMissedPostIds() != null && !redisPostQueryDto.getMissedPostIds().isEmpty()) {
             List<Post> missedPosts = postMapper.queryPostByIds(redisPostQueryDto.getMissedPostIds());
-            if(missedPosts!=null && !missedPosts.isEmpty()){
-                // 将未命中的帖子缓存并添加到结果中
+            if (missedPosts != null && !missedPosts.isEmpty()) {
                 for (Post post : missedPosts) {
                     postRedisService.addPostToRedis(post);
                     postRedisService.addPostCountToRedis(post);
                 }
+                result.addAll(missedPosts);
             }
-            result.addAll(missedPosts);
         }
-        return result;
+
+        // 构建 Map 方便按传入顺序排序
+        Map<Long, Post> postMap = result.stream()
+                .collect(Collectors.toMap(Post::getId, p -> p));
+
+        // 按传入 postIds 顺序返回
+        List<Post> sortedResult = postIds.stream()
+                .map(postMap::get) // 如果某个 id 没查到，这里会是 null
+                .filter(Objects::nonNull) // 过滤掉不存在的
+                .collect(Collectors.toList());
+
+        return sortedResult;
     }
 
     @Override
@@ -383,5 +419,17 @@ public class PostServiceImpl implements PostService {
     @Override
     public int countPostsByUserId(Long userId) {
         return postMapper.countPostsByUserId(userId);
+    }
+
+
+    private List<String> extractImageUrls(String content) {
+        List<String> urls = new ArrayList<>();
+        // 使用正则表达式提取img标签的src属性
+        Pattern pattern = Pattern.compile("<img[^>]+src=\"([^\"]+)\"");
+        Matcher matcher = pattern.matcher(content);
+        while (matcher.find()) {
+            urls.add(matcher.group(1));
+        }
+        return urls;
     }
 }

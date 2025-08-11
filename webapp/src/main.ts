@@ -14,6 +14,7 @@ import FollowList from './components/FollowList.vue'
 import PostCreate from './components/PostCreate.vue'
 import Trends from './components/Trends.vue'
 import Notice from './components/Notice.vue'
+import SearchResults from './components/SearchResults.vue'
 import CacheManager from './utils/cacheManager'
 
 // 启动缓存管理系统
@@ -42,6 +43,7 @@ const routes = [
   { path: '/create-post', component: PostCreate },
   { path: '/trends', component: Trends },
   { path: '/notice', component: Notice },
+  { path: '/search', component: SearchResults },
 ]
 
 const router = createRouter({

@@ -76,6 +76,7 @@
                     </div>
                   </div>
                   <div class="article-tags">
+                    <span v-if="article.forum" class="tag">{{ getForumLabel(article.forum) }}</span>
                     <span v-if="article.status === 1" class="tag featured">置顶</span>
                   </div>
                 </div>
@@ -397,6 +398,12 @@ const getAvatarUrlSync = (avatar: string) => {
   return avatar.startsWith('/defaultImg/') 
     ? `http://127.0.0.1:7071${avatar}` 
     : `http://127.0.0.1:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
+}
+
+// 获取板块标签
+const getForumLabel = (forum: string) => {
+  const category = categories.find(c => c.forum === forum)
+  return category ? category.label : forum
 }
 
 async function checkLogin() {
