@@ -1,5 +1,6 @@
 <template>
   <div class="modal-overlay" @click="handleOverlayClick">
+    
     <div class="modal-container" @click.stop>
       <button class="close-btn" @click="$emit('close')">×</button>
       

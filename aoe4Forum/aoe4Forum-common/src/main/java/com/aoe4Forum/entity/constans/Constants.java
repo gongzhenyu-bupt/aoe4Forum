@@ -52,4 +52,6 @@ public class Constants {
     public static final String REDIS_POST_LIST_HOT = "post:list:hot";
 
     public static final String REDIS_POST_CONTENT = "post:content:";
+
+    public static final String REDIS_FORUM_STATUS = "forum:status:";
 }

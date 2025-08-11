@@ -21,6 +21,7 @@ import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.ElasticSearchService;
 import com.aoe4Forum.service.PostRedisService;
 import com.aoe4Forum.service.PostService;
+import com.aoe4Forum.service.StatusService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,9 @@ public class PostServiceImpl implements PostService {
 
     @Resource
     private PostImageMapper postImageMapper;
+
+    @Resource
+    private StatusService statusService;
 
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -125,6 +129,9 @@ public class PostServiceImpl implements PostService {
         postRedisService.addPostContentToRedis(postContent);
         postRedisService.cachePostIdByForum(post.getForum(), post);
         postRedisService.cachePostIdByForum("all", post);
+
+//        增加计数
+        statusService.changeCount("post");
 
 //      插入es
         PostDocument postDocument = new PostDocument(postId,createPostRequest.getTitle(),createPostRequest.getContent());
@@ -265,7 +272,6 @@ public class PostServiceImpl implements PostService {
         // 将查询结果缓存
         postRedisService.addPostToRedis(post);
         postRedisService.addPostCountToRedis(post);
-
         return post;
     }
 
@@ -387,6 +393,8 @@ public class PostServiceImpl implements PostService {
             postRedisService.addPostContentToRedis(postContent);
         }
         postRedisService.changeCount(postId,"view",1);
+//        增加计数统计
+        statusService.changeCount("view");
         return postContent;
     }
 

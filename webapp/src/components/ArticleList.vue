@@ -27,20 +27,6 @@
             </div>
           </section>
 
-          <!-- 排序选项 - 只在全部分类下显示 -->
-          <section v-if="activeCategory === 'all'" class="sort-section">
-            <div class="sort-tabs">
-              <button 
-                v-for="sort in sortOptions" 
-                :key="sort.key"
-                :class="['sort-tab', { active: activeSort === sort.key }]"
-                @click="switchSort(sort.key)"
-              >
-                {{ sort.label }}
-              </button>
-            </div>
-          </section>
-
           <!-- 文章列表 -->
           <section class="articles-section">
             <div v-if="loading" class="loading-container">
@@ -119,9 +105,6 @@
             <p>点亮人生的每一天</p>
             <button class="welcome-btn" @click="openAuthModal">去登录</button>
           </div>
-          <div v-else class="user-info-card">
-            <div class="user-info-placeholder">用户信息展示区</div>
-          </div>
 
           <!-- 统计信息 -->
           <div class="stats-card">
@@ -129,26 +112,16 @@
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-label">文章</span>
-                <span class="stat-value">171</span>
+                <span class="stat-value">{{ forumStatus?.postCount || 0 }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">评论</span>
-                <span class="stat-value">624</span>
+                <span class="stat-value">{{ forumStatus?.commentCount || 0 }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">访客</span>
-                <span class="stat-value">2216109</span>
+                <span class="stat-value">{{ formatNumber(forumStatus?.viewCount || 0) }}</span>
               </div>
-            </div>
-          </div>
-
-          <!-- 体验加倍 -->
-          <div class="experience-card">
-            <h4>体验加倍</h4>
-            <p>想要您的邮箱/手机号 可以找回密码以及接收南生论坛的消息通知，不错过任何一条消息。</p>
-            <div class="experience-actions">
-              <span class="experience-icon">📧</span>
-              <span class="experience-text">作者榜</span>
             </div>
           </div>
         </aside>
@@ -162,7 +135,7 @@ import { ref, reactive, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import AuthModal from './AuthModal.vue'
-import { getArticlesApi, getHotArticlesApi, getProfileApi } from '../utils/api'
+import { getArticlesApi, getProfileApi, getForumStatusApi } from '../utils/api'  // 导入新接口
 import type { Article } from '../types/api'
 import AvatarCache from '../utils/avatarCache'
 
@@ -178,11 +151,23 @@ const isLogin = ref(false)
 const userInfo = ref<any>({})
 const defaultAvatar = 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png' // 占位头像
 const router = useRouter()
+const forumStatus = ref<any>({})
+
+// 获取论坛统计数据
+const fetchForumStatus = async () => {
+  try {
+    const response = await getForumStatusApi()
+    if (response.code === '0' || response.code === 0) {
+      forumStatus.value = response.data || {}
+    }
+  } catch (error) {
+    console.error('获取论坛统计数据失败:', error)
+  }
+}
 
 // 浏览状态管理
 const browseState = reactive({
   category: 'all',
-  sort: 'hot',
   offset: 0,
   scrollPosition: 0
 })
@@ -203,14 +188,7 @@ const categories = [
   { label: '封神榜', forum: 'hall-of-fame' }
 ]
 
-// 排序选项
-const sortOptions = [
-  { key: 'hot', label: '热门' },
-  { key: 'latest', label: '最新' }
-]
-
 const activeCategory = ref(browseState.category)
-const activeSort = ref(browseState.sort)
 
 // 获取文章列表
 const fetchArticles = async (reset = false) => {
@@ -219,39 +197,13 @@ const fetchArticles = async (reset = false) => {
   loading.value = true
   
   try {
-    let response
-    
-    if (activeCategory.value === 'all') {
-      if (activeSort.value === 'hot') {
-        // 热门排序：使用热门帖子API
-        const page = Math.floor((reset ? 0 : pagination.offset) / 10) + 1
-        
-        // 检查是否超过5页
-        if (page > 5) {
-          hasMore.value = false
-          loading.value = false
-          return
-        }
-        
-        response = await getHotArticlesApi(page)
-      } else {
-        // 最新排序：使用原有API
-        const params = {
-          forum: activeCategory.value,
-          offset: reset ? 0 : pagination.offset,
-          limit: pagination.limit
-        }
-        response = await getArticlesApi(params)
-      }
-    } else {
-      // 其他分类使用原有API
-      const params = {
-        forum: activeCategory.value,
-        offset: reset ? 0 : pagination.offset,
-        limit: pagination.limit
-      }
-      response = await getArticlesApi(params)
+    const params = {
+      forum: activeCategory.value,
+      offset: reset ? 0 : pagination.offset,
+      limit: pagination.limit
     }
+    
+    const response = await getArticlesApi(params)
     
     if (response.code === '0' || response.code === 0) {
       const newArticles = response.data || []
@@ -266,13 +218,7 @@ const fetchArticles = async (reset = false) => {
       pagination.offset += newArticles.length
       
       // 检查是否还有更多数据
-      if (activeCategory.value === 'all' && activeSort.value === 'hot') {
-        // 全部分类+热门排序：检查是否还有更多数据
-        hasMore.value = newArticles.length === 10 && Math.floor(pagination.offset / 10) < 5
-      } else {
-        // 其他情况：使用原有逻辑
-        hasMore.value = newArticles.length === pagination.limit
-      }
+      hasMore.value = newArticles.length === pagination.limit
     }
   } catch (error) {
     console.error('获取文章列表失败:', error)
@@ -284,7 +230,6 @@ const fetchArticles = async (reset = false) => {
 // 保存浏览状态
 const saveBrowseState = () => {
   browseState.category = activeCategory.value
-  browseState.sort = activeSort.value
   browseState.offset = pagination.offset
   browseState.scrollPosition = window.scrollY
   sessionStorage.setItem('articleListState', JSON.stringify(browseState))
@@ -296,12 +241,10 @@ const restoreBrowseState = () => {
   if (savedState) {
     const state = JSON.parse(savedState)
     browseState.category = state.category || 'all'
-    browseState.sort = state.sort || 'hot'
     browseState.offset = state.offset || 0
     browseState.scrollPosition = state.scrollPosition || 0
     
     activeCategory.value = browseState.category
-    activeSort.value = browseState.sort
     pagination.offset = browseState.offset
   }
 }
@@ -309,19 +252,6 @@ const restoreBrowseState = () => {
 // 切换分类
 const switchCategory = (forum: string) => {
   activeCategory.value = forum
-  // 如果切换到非全部分类，重置排序选项
-  if (forum !== 'all') {
-    activeSort.value = 'hot' // 重置为默认排序
-  }
-  saveBrowseState()
-  fetchArticles(true)
-}
-
-// 切换排序
-const switchSort = (sort: string) => {
-  activeSort.value = sort
-  // 重置分页参数
-  pagination.offset = 0
   saveBrowseState()
   fetchArticles(true)
 }
@@ -436,6 +366,9 @@ const handleScroll = () => {
 
 // 组件挂载时获取数据
 onMounted(() => {
+  // 获取论坛统计数据
+  fetchForumStatus()
+
   // 恢复浏览状态
   restoreBrowseState()
   
@@ -601,43 +534,6 @@ onUnmounted(() => {
 .category-btn.active {
   background: #3b82f6;
   color: white;
-}
-
-/* 排序选项 */
-.sort-section {
-  margin-bottom: 20px;
-}
-
-.sort-tabs {
-  display: flex;
-  gap: 16px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.sort-tab {
-  background: none;
-  border: none;
-  padding: 12px 0;
-  font-size: 14px;
-  color: #64748b;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s ease;
-}
-
-.sort-tab:hover,
-.sort-tab.active {
-  color: #3b82f6;
-}
-
-.sort-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #3b82f6;
 }
 
 /* 文章列表 */
@@ -865,16 +761,15 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-.stats-card,
-.experience-card {
+.stats-card {
   background: white;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 55px;
 }
 
-.stats-card h4,
-.experience-card h4 {
+.stats-card h4 {
   font-size: 16px;
   color: #1e293b;
   margin-bottom: 16px;
@@ -902,28 +797,6 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-}
-
-.experience-card p {
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-.experience-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.experience-icon {
-  font-size: 16px;
-}
-
-.experience-text {
-  font-size: 14px;
-  color: #64748b;
 }
 
 /* 响应式设计 */
@@ -972,16 +845,5 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.user-info-placeholder {
-  width: 200px;
-  height: 100px;
-  background: #f3f3f3;
-  border: 1px dashed #bbb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #888;
 }
 </style>

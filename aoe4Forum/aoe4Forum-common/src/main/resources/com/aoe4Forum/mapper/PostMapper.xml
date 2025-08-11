@@ -185,5 +185,4 @@
         SELECT COUNT(*) FROM post 
         WHERE user_id = #{userId} AND status != -1
     </select>
-
 </mapper>

@@ -18,51 +18,77 @@
             </div>
           </section>
 
-          <!-- 精选文章 -->
-          <section class="featured-section">
+          <!-- 热门文章 -->
+          <section class="hot-articles-section">
             <div class="section-header">
-              <h2 class="section-title">精选文章</h2>
-              <a href="#" class="more-link" @click="navigateToArticles">查看更多 →</a>
+              <h2 class="section-title">热门文章</h2>
             </div>
             
-            <div class="article-list">
-              <article class="article-card featured">
-                <div class="article-image">
-                  <img src="https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&fit=crop" alt="Article" />
-                </div>
-                <div class="article-content">
-                  <div class="article-meta">
-                    <span class="author">马高兴</span>
-                    <span class="date">2天前</span>
-                    <div class="tags">
-                      <span class="tag">SpringBoot</span>
-                      <span class="tag">Vue.js</span>
-                      <span class="tag">置顶</span>
+            <div v-if="loadingHotArticles" class="loading-container">
+              <div class="loading-spinner"></div>
+              <p>加载中...</p>
+            </div>
+            
+            <div v-else-if="hotArticles.length === 0" class="empty-container">
+              <p>暂无热门文章</p>
+            </div>
+            
+            <div v-else class="hot-article-list">
+              <article 
+                v-for="article in hotArticles" 
+                :key="article.id"
+                class="hot-article-item"
+                @click="goToArticle(article.id)"
+              >
+                <div class="article-header">
+                  <div class="author-info">
+                    <div class="author-avatar">
+                      <img 
+                        v-if="article.avatar" 
+                        :src="article.avatar.startsWith('/defaultImg/') ? `http://127.0.0.1:7071${article.avatar}` : `http://127.0.0.1:7071/avatarImg/${article.avatar.replace(/\\/g, '/').split('/').pop()}`" 
+                        :alt="article.userName"
+                        class="avatar-img"
+                      />
+                      <span v-else>{{ article.userName.charAt(0) }}</span>
+                    </div>
+                    <div class="author-details">
+                      <span class="author-name">{{ article.userName }}</span>
+                      <span class="publish-time">{{ formatTime(article.createTime) }}</span>
                     </div>
                   </div>
-                  <h3 class="article-title">【后端】安装部署教程</h3>
-                  <p class="article-excerpt">产品设计下载程序安装部署以及核心目录介绍教程，如果遇到无法连接数据库的问题请看 #QQ: 924 8184的解答视频...</p>
+                  <div class="article-tags">
+                    <span v-if="article.forum" class="tag">{{ getForumLabel(article.forum) }}</span>
+                    <span v-if="article.status === 1" class="tag featured">置顶</span>
+                  </div>
                 </div>
-              </article>
 
-              <article class="article-card">
-                <div class="article-image">
-                  <img src="https://images.pexels.com/photos/1181298/pexels-photo-1181298.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&fit=crop" alt="Article" />
-                </div>
                 <div class="article-content">
-                  <div class="article-meta">
-                    <span class="author">马高兴</span>
-                    <span class="date">2天前</span>
-                    <div class="tags">
-                      <span class="tag">Vue.js</span>
-                      <span class="tag">SpringBoot</span>
-                      <span class="tag">置顶</span>
-                    </div>
+                  <h3 class="article-title">{{ article.title }}</h3>
+                  <p class="article-excerpt">
+                    {{ article.postAbstract ?? article.title }}
+                  </p>
+                </div>
+
+                <div class="article-footer">
+                  <div class="article-stats">
+                    <span class="stat-item">
+                      👁 {{ formatNumber(article.pageViewCount) }}
+                    </span>
+                    <span class="stat-item">
+                      👍 {{ formatNumber(article.likeCount) }}
+                    </span>
+                    <span class="stat-item">
+                      💬 {{ formatNumber(article.commentCount) }}
+                    </span>
                   </div>
-                  <h3 class="article-title">【前端】安装部署教程</h3>
-                  <p class="article-excerpt">产品设计下载程序安装部署以及核心目录介绍教程，如果遇到无法连接数据库的问题请看 #QQ: 924 8184的解答视频...</p>
                 </div>
               </article>
+            </div>
+
+            <!-- 加载更多 -->
+            <div v-if="!loadingHotArticles" class="load-more">
+              <button v-if="hasMoreHotArticles" class="load-more-btn" @click="loadMoreHotArticles">加载更多</button>
+              <p v-else class="no-more-text">没有更多了</p>
             </div>
           </section>
 
@@ -92,13 +118,7 @@
              <button v-else class="welcome-btn" @click="goToUserCenter">个人中心</button>
            </div>
 
-          <!-- 权限提示 -->
-          <div class="permission-notice">
-            <h4>获取南生论坛使用权限</h4>
-            <p class="notice-text">系统公告 <span class="notice-icon">📢</span></p>
-            <p class="notice-desc">普通用户可见系统公告</p>
-            <a href="#" class="notice-link">查看更多 →</a>
-          </div>
+          
 
                      <!-- 最新文章 -->
            <div class="latest-articles">
@@ -137,7 +157,7 @@ import { inject, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import AuthModal from './AuthModal.vue'
-import { getLatestArticlesApi, getProfileApi, getUserInfoApi } from '../utils/api'
+import { getLatestArticlesApi, getProfileApi, getUserInfoApi, getHotArticlesApi } from '../utils/api'
 import { getCookie } from '../utils/cookie'
 
 const router = useRouter()
@@ -149,9 +169,105 @@ const navigateToArticles = inject('navigateToArticles') as () => void
 const latestArticles = ref<any[]>([])
 const loadingLatestArticles = ref(false)
 
+// 热门文章数据
+const hotArticles = ref<any[]>([])
+const loadingHotArticles = ref(false)
+const hasMoreHotArticles = ref(true)
+const currentPage = ref(1)
+
 // 用户信息
 const userInfo = ref<any>({})
 const isLogin = ref(false)
+
+// 获取热门文章
+const fetchHotArticles = async (reset = false) => {
+  if (loadingHotArticles.value) return
+  
+  loadingHotArticles.value = true
+  try {
+    let page = 1
+    if (!reset) {
+      page = currentPage.value + 1
+    }
+    
+    // 检查是否超过5页
+    if (page > 5) {
+      hasMoreHotArticles.value = false
+      loadingHotArticles.value = false
+      return
+    }
+    
+    const response = await getHotArticlesApi(page)
+    
+    if (response.code === '0' || response.code === 0) {
+      const newArticles = response.data || []
+      
+      if (reset) {
+        hotArticles.value = newArticles
+        currentPage.value = 1
+      } else {
+        hotArticles.value.push(...newArticles)
+        currentPage.value = page
+      }
+      
+      // 检查是否还有更多数据
+      hasMoreHotArticles.value = newArticles.length === 10 && page < 5
+    }
+  } catch (error) {
+    console.error('获取热门文章失败:', error)
+  } finally {
+    loadingHotArticles.value = false
+  }
+}
+
+// 加载更多热门文章
+const loadMoreHotArticles = () => {
+  fetchHotArticles(false)
+}
+
+// 格式化时间
+const formatTime = (timeStr: string) => {
+  const time = new Date(timeStr)
+  const now = new Date()
+  const diff = now.getTime() - time.getTime()
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor(diff / (1000 * 60))
+  
+  if (days > 0) {
+    return `${days}天前`
+  } else if (hours > 0) {
+    return `${hours}小时前`
+  } else if (minutes > 0) {
+    return `${minutes}分钟前`
+  } else {
+    return '刚刚'
+  }
+}
+
+// 格式化数字
+const formatNumber = (num: number) => {
+  if (num >= 10000) {
+    return `${(num / 10000).toFixed(1)}w`
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k`
+  }
+  return num.toString()
+}
+
+// 获取板块标签
+const getForumLabel = (forum: string) => {
+  const categories = [
+    { label: '单排攻略', forum: 'solo-guide' },
+    { label: '组排攻略', forum: 'team-guide' },
+    { label: '强度讨论', forum: 'meta-discuss' },
+    { label: '闲聊', forum: 'chat' },
+    { label: '封神榜', forum: 'hall-of-fame' }
+  ]
+  const category = categories.find(c => c.forum === forum)
+  return category ? category.label : forum
+}
 
 // 获取最新文章
 const fetchLatestArticles = async () => {
@@ -240,20 +356,16 @@ const handleAuthSuccess = async () => {
   await checkLoginAndGetUserInfo()
 }
 
-const handleCreateAction = () => {
-  // 检查是否需要登录权限
-  const token = getCookie('token')
-  if (!token) {
-    openAuthModal()
-  } else {
-    // 执行创作中心逻辑
-    console.log('进入创作中心')
-  }
-}
+ 
 
 // 组件挂载时获取最新文章
 onMounted(() => {
+  // 重置页码，确保每次刷新都从第1页开始
+  currentPage.value = 1
+  hasMoreHotArticles.value = true
+  
   fetchLatestArticles()
+  fetchHotArticles(true)
   checkLoginAndGetUserInfo()
 })
 </script>
@@ -412,85 +524,126 @@ onMounted(() => {
   text-decoration: underline;
 }
 
-/* 文章卡片 */
-.article-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* 热门文章样式 */
+.hot-articles-section {
   margin-bottom: 32px;
 }
 
-.article-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  gap: 16px;
-  padding: 16px;
+.loading-container,
+.empty-container {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
 }
 
-.article-card:hover {
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.hot-article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hot-article-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hot-article-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.article-card.featured {
-  border-left: 4px solid #10b981;
+.article-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
-.article-image {
-  flex-shrink: 0;
-  width: 160px;
-  height: 100px;
-  border-radius: 8px;
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
   overflow: hidden;
 }
 
-.article-image img {
+.avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.article-content {
-  flex: 1;
+.author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.article-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+.author-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.publish-time {
   font-size: 12px;
   color: #64748b;
 }
 
-.author {
-  font-weight: 500;
-}
-
-.tags {
+.article-tags {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.tag:last-child {
+.tag.featured {
   background: #fef3c7;
   color: #d97706;
 }
 
+.article-content {
+  margin-bottom: 16px;
+}
+
 .article-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #1e293b;
   margin-bottom: 8px;
@@ -500,9 +653,55 @@ onMounted(() => {
 .article-excerpt {
   font-size: 14px;
   color: #64748b;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
+.article-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.article-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-item {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 加载更多样式 */
+.load-more {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.load-more-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 24px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.no-more-text {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
 
 
 /* 侧边栏样式 */
@@ -565,47 +764,16 @@ onMounted(() => {
 .stat-label {
   font-size: 12px;
   opacity: 0.8;
+  color: #fbbf24;
 }
 
 .stat-value {
   font-size: 18px;
   font-weight: 600;
+  color: #fbbf24;
 }
 
-.permission-notice {
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.permission-notice h4 {
-  color: #f59e0b;
-  font-size: 14px;
-  margin-bottom: 12px;
-}
-
-.notice-text {
-  font-size: 13px;
-  color: #374151;
-  margin-bottom: 4px;
-}
-
-.notice-icon {
-  margin-left: 4px;
-}
-
-.notice-desc {
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 8px;
-}
-
-.notice-link {
-  color: #3b82f6;
-  text-decoration: none;
-  font-size: 12px;
-}
+ 
 
 .latest-articles {
   background: white;

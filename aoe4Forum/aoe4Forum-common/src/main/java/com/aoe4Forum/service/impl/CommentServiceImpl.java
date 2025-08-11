@@ -10,6 +10,7 @@ import com.aoe4Forum.mapper.PostMapper;
 import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.PostRedisService;
+import com.aoe4Forum.service.StatusService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,9 @@ public class CommentServiceImpl implements CommentService {
     @Resource
     private RedisComponent redisComponent;
 
+    @Resource
+    private StatusService statusService;
+
     ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -74,6 +78,8 @@ public class CommentServiceImpl implements CommentService {
         }else{
             changePostCommentCount(comment.getPostId(),1);
         }
+        statusService.changeCount("comment");
+//        如果回复的是自己，则返回
         if(commentRequest.getRepliedUserId().equals(comment.getUserId())){
             return comment;
         }

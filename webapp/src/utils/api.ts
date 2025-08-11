@@ -343,3 +343,9 @@ export async function searchPostsApi(keyword: string): Promise<any> {
     method: 'GET',
   })
 }
+
+export async function getForumStatusApi(): Promise<any> {
+  return request(`/status`, {
+    method: 'GET',
+  })
+}

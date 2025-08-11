@@ -48,4 +48,5 @@ public interface PostMapper {
 
     // 统计用户发布的帖子数量
     int countPostsByUserId(@Param("userId") Long userId);
+
 }
