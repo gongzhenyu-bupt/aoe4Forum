@@ -45,4 +45,14 @@
         LIMIT #{request.pageSize}
     </select>
 
+    <select id="QueryIds" resultType="java.lang.Boolean">
+        SELECT
+            CASE WHEN COUNT(1) > 0 THEN TRUE ELSE FALSE END
+        FROM like_notice
+        WHERE sender_id = #{senderId}
+          AND business_type = #{businessType}
+          AND user_id = #{userId}
+          AND business_id = #{businessId}
+    </select>
+
 </mapper>

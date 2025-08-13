@@ -28,7 +28,7 @@
           <div class="comment-text">{{ comment.content }}</div>
           <div class="comment-footer">
             <span class="comment-date">{{ comment.createTime }}</span>
-            <el-button size="small" text icon="el-icon-thumb" class="comment-action">👍 {{ comment.likes || 0 }}</el-button>
+            <el-button size="small" text icon="el-icon-thumb" class="comment-action" @click="likeComment(comment)">👍 {{ comment.likeCount || 0 }}</el-button>
             <el-button size="small" text class="comment-action" @click="showReplyInput(comment)">回复</el-button>
             <el-button size="small" text type="danger" v-if="isMyComment(comment)" @click="deleteComment(comment.commentId)">删除</el-button>
           </div>
@@ -64,7 +64,7 @@
                 <div class="child-text">{{ child.content }}</div>
                 <div class="child-footer">
                   <span class="child-date">{{ child.createTime }}</span>
-                  <el-button size="small" text icon="el-icon-thumb" class="comment-action">👍 {{ child.likes || 0 }}</el-button>
+                  <el-button size="small" text icon="el-icon-thumb" class="comment-action" @click="likeComment(child)">👍 {{ child.likeCount || 0 }}</el-button>
                   <el-button size="small" text class="comment-action" @click="showReplyInput(child)">回复</el-button>
                   <el-button size="small" text type="danger" v-if="isMyComment(child)" @click="deleteComment(child.commentId)">删除</el-button>
                 </div>
@@ -111,9 +111,44 @@
 import { ref, onMounted, watch, defineProps } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getCommentsByPostIdApi, createCommentApi, deleteCommentApi, getCommentsByParentIdApi, getCommentsByParentIdsApi } from '../utils/api'
+import { getCommentsByPostIdApi, createCommentApi, deleteCommentApi, getCommentsByParentIdApi, getCommentsByParentIdsApi, likeCommentApi, getCommentByIdApi } from '../utils/api'
 import { getCookie } from '../utils/cookie'
 import AvatarCache from '../utils/avatarCache'
+
+// 点赞（最小改动实现）
+const likeComment = async (target: any) => {
+  const token = getCookie('token')
+  if (!token) {
+    ElMessage.warning('请先登录后再点赞')
+    return
+  }
+  if (!target || !target.commentId) return
+
+  const prevCount = target.likeCount || 0
+  if (target._liked === true) {
+    target.likeCount = Math.max(0, prevCount - 1)
+  } else {
+    target.likeCount = prevCount + 1
+  }
+
+  try {
+    const res = await likeCommentApi(target.commentId)
+    if (!(res && (res.code === '0' || res.code === 0))) {
+      target.likeCount = prevCount
+      ElMessage.error(res?.msg || res?.message || '操作失败')
+    } else {
+      const fresh = await getCommentByIdApi(target.commentId)
+      if (fresh && (fresh.code === '0' || fresh.code === 0) && fresh.data) {
+        const freshData = fresh.data
+        target.likeCount = freshData.likeCount ?? target.likeCount
+      }
+      target._liked = !target._liked
+    }
+  } catch (e) {
+    target.likeCount = prevCount
+    ElMessage.error('操作失败')
+  }
+}
 
 const props = defineProps<{ postId: number, myUserId?: number, commentCount: number }>()
 
@@ -363,8 +398,7 @@ const replyTo = (comment: any) => {
 // 显示动态回复输入框
 const showReplyInput = (comment: any) => {
   activeReplyId.value = comment.commentId
-  replyContent.value = `@${comment.username} `
-}
+  replyContent.value = `@${comment.username} `}
 
 // 取消动态回复
 const cancelReply = () => {

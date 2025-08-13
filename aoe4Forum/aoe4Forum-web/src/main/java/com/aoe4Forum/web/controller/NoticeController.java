@@ -54,7 +54,6 @@ public class NoticeController {
             Long lastId,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime lastCreateTime,
             HttpServletRequest request) {
-
         if (userId == null) {
             return ResponseVO.error("103", "查询失败");
         }
@@ -62,7 +61,6 @@ public class NoticeController {
         if (userIdWithToken == null || !userIdWithToken.equals(userId)) {
             return ResponseVO.error("102", "无权限");
         }
-
         NoticeCursorPageRequest noticeCursorPageRequest = new NoticeCursorPageRequest();
         noticeCursorPageRequest.setUserId(userId);
         noticeCursorPageRequest.setLastId(lastId);
@@ -75,14 +73,12 @@ public class NoticeController {
             emptyResult.setNoticeList(Collections.emptyList());
             return ResponseVO.success("查询成功", emptyResult);
         }
-
         // 1. 提取所有发送者ID（去重，减少查询量）
         List<Long> senderIds = result.getNotices().stream()
                 .map(LikeNotice::getSenderId)
                 .filter(Objects::nonNull) // 过滤空ID，避免无效查询
                 .distinct() // 去重，减少批量查询压力
                 .collect(Collectors.toList());
-
         // 2. 批量查询发送者信息（优先查缓存，缓存未命中查数据库）
         Map<Long, UserInfoDto> senderMap = new HashMap<>();
         if (!senderIds.isEmpty()) {
@@ -92,7 +88,6 @@ public class NoticeController {
             senderMap = senders.stream()
                     .collect(Collectors.toMap(UserInfoDto::getId, user -> user, (k1, k2) -> k1)); // 处理重复ID（理论上不会出现）
         }
-
         // 3. 解析通知内容并组装VO（同时填充发送者信息）
         List<String> contents = postAndCommentAbstractService.parseLikeNotice(result.getNotices());
         List<LikeNoticeVO> responsesList = new ArrayList<>();
@@ -121,7 +116,6 @@ public class NoticeController {
 
             responsesList.add(noticeVO);
         }
-
         // 5. 组装返回结果
         NoticeQueryResultVO<LikeNoticeVO> likeQueryResultVO = new NoticeQueryResultVO<>();
         likeQueryResultVO.setNoticeList(responsesList);

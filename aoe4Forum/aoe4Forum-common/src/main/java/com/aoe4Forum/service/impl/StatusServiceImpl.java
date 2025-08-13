@@ -61,7 +61,6 @@ public class StatusServiceImpl implements StatusService {
     @Override
     public void changeCount(String type){
         redisUtils.hIncrBy(Constants.REDIS_FORUM_STATUS,type,1);
-        System.out.println(type+"change ok");
     }
 
     @Scheduled(fixedRate = 6000*60)

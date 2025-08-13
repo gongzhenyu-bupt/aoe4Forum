@@ -9,6 +9,7 @@ import com.aoe4Forum.entity.dto.LikeNoticeDto;
 import com.aoe4Forum.entity.notice.CommentNotice;
 import com.aoe4Forum.entity.notice.FollowNotice;
 import com.aoe4Forum.entity.notice.LikeNotice;
+import com.aoe4Forum.mapper.LikeNoticeMapper;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.NoticeService;
 import com.aoe4Forum.service.PostService;
@@ -43,6 +44,9 @@ public class NoticeListener {
 
     private static final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(1, 1);
 
+    @Autowired
+    private LikeNoticeMapper likeNoticeMapper;
+
     @RabbitListener(queues = "notice.like.queue")
     public void handleLikePush(String likeNoticeData) {
         if(likeNoticeData ==null){
@@ -65,13 +69,19 @@ public class NoticeListener {
         likeNotice.setCreateTime(LocalDateTime.now());
         likeNotice.setId(idGenerator.nextId());
         likeNotice.setSenderName(dto.getSenderName());
-
+        Long userId = 0L;
         if(dto.getBusinessType().equals("post")){
             Post post = postService.queryPostById(dto.getBusinessId());
             likeNotice.setUserId(post.getUserId());
+            userId = post.getUserId();
         }else if(dto.getBusinessType().equals("comment")){
             Comment comment = commentService.getComment(dto.getBusinessId());
             likeNotice.setUserId(comment.getUserId());
+            userId = comment.getUserId();
+        }
+        Boolean status = likeNoticeMapper.QueryIds(dto.getSenderId(),dto.getBusinessType(),userId,dto.getBusinessId());
+        if(status||dto.getSenderId().equals(userId)){
+            return;
         }
         likeNoticeService.insert(likeNotice);
     }

@@ -329,6 +329,20 @@ export async function likePostApi(params: { postId: number, type: number}): Prom
   })
 }
 
+// 评论点赞API（最小改动接入）
+export async function likeCommentApi(commentId: number): Promise<any> {
+  return request(`/community/likeComment?commentId=${commentId}`, {
+    method: 'GET',
+  })
+}
+
+// 根据评论ID获取评论详情
+export async function getCommentByIdApi(commentId: number): Promise<any> {
+  return request(`/community/getComment?commentId=${commentId}`, {
+    method: 'GET',
+  })
+}
+
 // 查询用户发布的帖子API
 export async function queryPostsByUserIdApi(params: { userId: number, offset?: number, limit?: number }): Promise<any> {
   const { userId, offset = 0, limit = 10 } = params
