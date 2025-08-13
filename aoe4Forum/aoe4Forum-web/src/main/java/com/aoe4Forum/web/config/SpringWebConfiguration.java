@@ -36,13 +36,13 @@ public class SpringWebConfiguration implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/tempImg/**")
-                .addResourceLocations("file:C:/Users/81595/Desktop/all/tempImg/");
+                .addResourceLocations("file:/root/aoe4Forum/tempImg/");
         registry.addResourceHandler("/avatarImg/**")
-                .addResourceLocations("file:C:/Users/81595/Desktop/all/avatarImg/");
+                .addResourceLocations("file:/root/aoe4Forum/avatarImg/");
         registry.addResourceHandler("/defaultImg/**")
-                .addResourceLocations("file:C:/Users/81595/Desktop/all/defaultImg/");
+                .addResourceLocations("file:/root/aoe4Forum/defaultImg/");
         registry.addResourceHandler("/postImg/**")
-                .addResourceLocations("file:C:/Users/81595/Desktop/all/postImg/");
+                .addResourceLocations("file:/root/aoe4Forum/postImg/");
     }
 }
 

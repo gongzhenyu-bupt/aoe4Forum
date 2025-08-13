@@ -48,11 +48,11 @@ const getAvatarUrl = (avatar: string) => {
   if (!avatar) return 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
   // 判断是否是默认头像路径
   if (avatar.startsWith('/defaultImg/')) {
-    return `http://127.0.0.1:7071${avatar}`
+    return `http://101.126.22.249:7071${avatar}`
   }
   // 只取文件名，拼接为Spring Boot静态资源URL
   const filename = avatar.replace(/\\/g, '/').split('/').pop()
-  return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
+  return filename ? `http://101.126.22.249:7071/avatarImg/${filename}` : 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
 }
 
 // 处理评论定位

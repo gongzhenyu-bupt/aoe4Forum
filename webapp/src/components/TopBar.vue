@@ -129,10 +129,10 @@ function getImageUrl(path: string): string {
   if (/^https?:\/\//.test(path)) return path
   // 判断是否是默认头像路径
   if (path.startsWith('/defaultImg/')) {
-    return `http://127.0.0.1:7071${path}`
+    return `http://101.126.22.249:7071${path}`
   }
   const filename = path.replace(/\\/g, '/').split('/').pop()
-  return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : DEFAULT_AVATAR
+  return filename ? `http://101.126.22.249:7071/avatarImg/${filename}` : DEFAULT_AVATAR
 }
 
 function loadAvatar() {

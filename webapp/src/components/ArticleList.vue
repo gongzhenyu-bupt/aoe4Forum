@@ -326,8 +326,8 @@ const getAvatarUrlSync = (avatar: string) => {
   if (!avatar) return defaultAvatar
   // 这里可以添加一个简单的缓存检查，但主要依赖AvatarCache的内部缓存
   return avatar.startsWith('/defaultImg/') 
-    ? `http://127.0.0.1:7071${avatar}` 
-    : `http://127.0.0.1:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
+    ? `http://101.126.22.249:7071${avatar}` 
+    : `http://101.126.22.249:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
 }
 
 // 获取板块标签

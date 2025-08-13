@@ -2,7 +2,7 @@ import type { LoginRequest, RegisterRequest, CheckCodeResponse, ApiResponse, Art
 import type { FollowCursorPageRequest, FollowQueryResult } from '../types/api'
 
 // API 基础配置
-const API_BASE_URL = 'http://127.0.0.1:7071'
+const API_BASE_URL = 'http://101.126.22.249:7071'
 
 // 通用请求函数
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {

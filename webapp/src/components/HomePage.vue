@@ -45,7 +45,7 @@
                     <div class="author-avatar">
                       <img 
                         v-if="article.avatar" 
-                        :src="article.avatar.startsWith('/defaultImg/') ? `http://127.0.0.1:7071${article.avatar}` : `http://127.0.0.1:7071/avatarImg/${article.avatar.replace(/\\/g, '/').split('/').pop()}`" 
+                        :src="article.avatar.startsWith('/defaultImg/') ? `http://101.126.22.249:7071${article.avatar}` : `http://101.126.22.249:7071/avatarImg/${article.avatar.replace(/\\/g, '/').split('/').pop()}`" 
                         :alt="article.userName"
                         class="avatar-img"
                       />

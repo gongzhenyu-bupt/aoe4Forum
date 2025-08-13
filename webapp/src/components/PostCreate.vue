@@ -64,7 +64,7 @@ const editorConfig = {
   placeholder: '请输入内容...',
   MENU_CONF: {
     uploadImage: {
-      server: 'http://127.0.0.1:7071/upload/image',
+      server: 'http://101.126.22.249:7071/upload/image',
       fieldName: 'file',
       maxFileSize: 10 * 1024 * 1024, // 10MB
       maxNumberOfFiles: 10,
