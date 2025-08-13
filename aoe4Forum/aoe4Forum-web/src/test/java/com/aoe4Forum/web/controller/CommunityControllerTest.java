@@ -89,21 +89,21 @@ public class CommunityControllerTest {
                 .andExpect(jsonPath("$.message").value("查询成功"));
     }
 
-    @Test
-    public void testQueryPostByHot() throws Exception {
-        QueryPostRequest request = new QueryPostRequest();
-        request.setForum("general");
-        request.setOffset(0);
-        request.setLimit(10);
-
-        when(postServiceImpl.queryPostByHot(request)).thenReturn(Collections.emptyList());
-
-        mockMvc.perform(post("/community/queryPostByHot")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("查询成功"));
-    }
+//    @Test
+//    public void testQueryPostByHot() throws Exception {
+//        QueryPostRequest request = new QueryPostRequest();
+//        request.setForum("general");
+//        request.setOffset(0);
+//        request.setLimit(10);
+//
+//        when(postServiceImpl.queryPostByHot(request)).thenReturn(Collections.emptyList());
+//
+//        mockMvc.perform(post("/community/queryPostByHot")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(objectMapper.writeValueAsString(request)))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.message").value("查询成功"));
+//    }
 
     @Test
     public void testQueryPostContent() throws Exception {

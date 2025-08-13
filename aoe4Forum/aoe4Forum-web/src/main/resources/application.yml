@@ -45,6 +45,10 @@ spring:
     username: guest
     password: guest
     virtual-host: /
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: changeme
 #mybatis 大小写转驼峰
 mybatis:
   mapper-locations: classpath*:com/aoe4Forum/mappers/*.xml

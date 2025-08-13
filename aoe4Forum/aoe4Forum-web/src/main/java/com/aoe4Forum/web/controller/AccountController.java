@@ -40,7 +40,7 @@ public class AccountController extends ABaseController{
     @Autowired
     private UserServiceImpl userServiceImpl;
 
-    @RequestMapping("/checkCode")
+    @GetMapping("/checkCode")
     public ResponseVO<Map<String,String>> checkCode(){
         //生成验证码
         ArithmeticCaptcha captcha = new ArithmeticCaptcha(130, 48);
@@ -104,7 +104,7 @@ public class AccountController extends ABaseController{
         return ResponseVO.success("登录成功",null);
     }
 
-    @RequestMapping("/autologin")
+    @GetMapping("/autologin")
     public ResponseVO<Map<String,String>> autoLogin(HttpServletResponse response){
         TokenUserInfoDto tokenUserInfoDto = getTokenFromCookie();
         if(tokenUserInfoDto==null){
@@ -117,7 +117,7 @@ public class AccountController extends ABaseController{
         return ResponseVO.success();
     }
 
-    @RequestMapping("/logout")
+    @GetMapping("/logout")
     public ResponseVO<Map<String,String>> logout(HttpServletResponse response){
         cleanCookie(response);
         return ResponseVO.success("1",null);
@@ -167,7 +167,7 @@ public class AccountController extends ABaseController{
         return ResponseVO.success("上传成功",map);
     }
 
-    @RequestMapping("/confirmAvatar")
+    @GetMapping("/confirmAvatar")
     public ResponseVO<Map<String,String>> confirmAvatar(@RequestParam("path") String path,
                                                         @RequestParam("id") Long id
                                                         ){

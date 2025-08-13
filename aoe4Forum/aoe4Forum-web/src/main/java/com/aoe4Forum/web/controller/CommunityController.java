@@ -12,6 +12,7 @@ import com.aoe4Forum.mapper.CommentMapper;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.impl.CommentServiceImpl;
 import com.aoe4Forum.service.impl.PostServiceImpl;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @CrossOrigin
 @RestController
@@ -33,6 +35,7 @@ public class CommunityController extends ABaseController{
 
     @Autowired
     private CommentService commentService;
+
     @Autowired
     private CommentMapper commentMapper;
 
@@ -66,7 +69,6 @@ public class CommunityController extends ABaseController{
     public ResponseVO<Map<String,String>> updatePost(@Valid @RequestBody PostRequest postRequest,
                                                      HttpServletRequest request
                                                      ){
-//        TODO 需要加一个拦截器做登录
         setRequestParams(request,postRequest);
 //       修改帖子
         postServiceImpl.updatePost(postRequest);
@@ -76,26 +78,27 @@ public class CommunityController extends ABaseController{
 //    查询指定数量的帖子信息，不包含具体内容
     @PostMapping("/queryPostByForum")
     public ResponseVO<List<Post>> queryPostByForum(@Valid @RequestBody QueryPostRequest queryPostRequest){
-
         List<Post> posts = postServiceImpl.queryPostByForum(queryPostRequest);
 
         return  ResponseVO.success("查询成功",posts);
     }
-    @RequestMapping("/queryPostById")
+    @GetMapping("/queryPostById")
     public ResponseVO<Post> queryPostById(@RequestParam Long postId){
         Post post = postServiceImpl.queryPostById(postId);
         return  ResponseVO.success("查询成功",post);
     }
 //    查询指定数量的帖子信息，不包含具体内容
-    @PostMapping("/queryPostByHot")
-    public ResponseVO<List<Post>> queryPostByHot(@Valid @RequestBody QueryPostRequest queryPostRequest){
+    @GetMapping("/queryPostByHot")
+    public ResponseVO<List<Post>> queryPostByHot(@RequestParam int page){
 
-        List<Post> posts = postServiceImpl.queryPostByHot(queryPostRequest);
+        List<Post> posts = postServiceImpl.queryPostByHot(page);
 
         return  ResponseVO.success("查询成功",posts);
     }
 
-    @RequestMapping("/queryPostContent")
+    
+
+    @GetMapping("/queryPostContent")
     public ResponseVO<PostContent> queryPostContent(long postId){
         PostContent postcontent = postServiceImpl.queryPostContent(postId);
 
@@ -107,15 +110,15 @@ public class CommunityController extends ABaseController{
     CommentServiceImpl commentServiceImpl;
 
     @PostMapping("/createComment")
-    public ResponseVO<Map<String,String>> CreateComment(@Valid @RequestBody CommentRequest commentRequest,
+    public ResponseVO<Comment> CreateComment(@Valid @RequestBody CommentRequest commentRequest,
                                                         HttpServletRequest request
                                                         ){
         setRequestParams(request,commentRequest);
-        commentServiceImpl.createComment(commentRequest);
-        return ResponseVO.success("评论成功",null);
+        Comment newComment = commentServiceImpl.createComment(commentRequest);
+        return ResponseVO.success("评论成功",newComment);
     }
 
-    @RequestMapping("/deleteComment")
+    @GetMapping("/deleteComment")
     public ResponseVO<Map<String,String>> deleteComment(@RequestParam Long commentId,
                                                         HttpServletRequest request
                                                         ){
@@ -126,14 +129,14 @@ public class CommunityController extends ABaseController{
         return ResponseVO.success("删除成功",null);
     }
 
-    @RequestMapping("/getComment")
+    @GetMapping("/getComment")
     public ResponseVO<Comment> getComment(@RequestParam Long commentId){
         Comment comment = commentService.getComment(commentId);
         return ResponseVO.success("查询成功",comment);
     }
 
 
-    @RequestMapping("/getCommentsByPostId")
+    @GetMapping("/getCommentsByPostId")
     public ResponseVO<List<Comment>> getCommentsByPostId(@RequestParam Long postId,
                                                          @RequestParam int offset,
                                                          @RequestParam int limit
@@ -146,7 +149,7 @@ public class CommunityController extends ABaseController{
         return   ResponseVO.success("查询成功",parentComments);
     }
 
-    @RequestMapping("getCommentsByParentId")
+    @GetMapping("getCommentsByParentId")
     public ResponseVO<List<Comment>> getCommentsByParentId(@RequestParam Long parentId,
                                                            @RequestParam int offset,
                                                            @RequestParam int limit
@@ -205,5 +208,24 @@ public class CommunityController extends ABaseController{
             postServiceImpl.dislikePost(postRequest);
         }
         return ResponseVO.success();
+    }
+    
+    @GetMapping("/queryPostsByUserId")
+    public ResponseVO<Map<String, Object>> queryPostsByUserId(@RequestParam Long userId,
+                                                              @RequestParam(defaultValue = "0") int offset,
+                                                              @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<Post> posts = postServiceImpl.queryPostsByUserId(userId, offset, limit);
+            int totalCount = postServiceImpl.countPostsByUserId(userId);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("posts", posts);
+            result.put("totalCount", totalCount);
+            result.put("hasMore", offset + limit < totalCount);
+            
+            return ResponseVO.success("查询成功", result);
+        } catch (Exception e) {
+            return ResponseVO.error("500", "查询失败：" + e.getMessage());
+        }
     }
 }

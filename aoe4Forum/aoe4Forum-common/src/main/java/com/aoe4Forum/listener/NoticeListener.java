@@ -9,9 +9,11 @@ import com.aoe4Forum.entity.dto.LikeNoticeDto;
 import com.aoe4Forum.entity.notice.CommentNotice;
 import com.aoe4Forum.entity.notice.FollowNotice;
 import com.aoe4Forum.entity.notice.LikeNotice;
+import com.aoe4Forum.mapper.LikeNoticeMapper;
 import com.aoe4Forum.service.CommentService;
 import com.aoe4Forum.service.NoticeService;
 import com.aoe4Forum.service.PostService;
+import com.aoe4Forum.service.impl.CommentNoticeServiceImpl;
 import com.aoe4Forum.utils.SnowflakeIdGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -27,7 +29,7 @@ public class NoticeListener {
     private NoticeService<LikeNotice> likeNoticeService;
 
     @Autowired
-    private NoticeService<CommentNotice> commentNoticeService;
+    private CommentNoticeServiceImpl commentNoticeService;
 
     @Autowired
     private NoticeService<FollowNotice> followNoticeService;
@@ -41,6 +43,9 @@ public class NoticeListener {
     ObjectMapper objectMapper = new ObjectMapper();
 
     private static final SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(1, 1);
+
+    @Autowired
+    private LikeNoticeMapper likeNoticeMapper;
 
     @RabbitListener(queues = "notice.like.queue")
     public void handleLikePush(String likeNoticeData) {
@@ -64,13 +69,19 @@ public class NoticeListener {
         likeNotice.setCreateTime(LocalDateTime.now());
         likeNotice.setId(idGenerator.nextId());
         likeNotice.setSenderName(dto.getSenderName());
-
+        Long userId = 0L;
         if(dto.getBusinessType().equals("post")){
             Post post = postService.queryPostById(dto.getBusinessId());
             likeNotice.setUserId(post.getUserId());
+            userId = post.getUserId();
         }else if(dto.getBusinessType().equals("comment")){
             Comment comment = commentService.getComment(dto.getBusinessId());
             likeNotice.setUserId(comment.getUserId());
+            userId = comment.getUserId();
+        }
+        Boolean status = likeNoticeMapper.QueryIds(dto.getSenderId(),dto.getBusinessType(),userId,dto.getBusinessId());
+        if(status||dto.getSenderId().equals(userId)){
+            return;
         }
         likeNoticeService.insert(likeNotice);
     }
@@ -93,8 +104,9 @@ public class NoticeListener {
         Long businessId = dto.getCommentId();
         Long userId = dto.getRepliedUserId();
         Long senderId = dto.getUserId();
+        Long postId = dto.getPostId(); // 获取帖子ID
 
-        CommentNotice notice = commentNoticeService.createNotice(businessId, idGenerator.nextId(), LocalDateTime.now());
+        CommentNotice notice = commentNoticeService.createNoticeWithPostId(businessId, idGenerator.nextId(), LocalDateTime.now(), postId);
         notice.setUserId(userId);
         notice.setSenderId(senderId);
         commentNoticeService.insert(notice);

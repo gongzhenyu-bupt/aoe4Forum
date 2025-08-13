@@ -9,6 +9,6 @@ public class QueryPostRequest {
 
     private int offset = 0;
 
-    private int limit = 1;
+    private int limit = 10;
 
 }

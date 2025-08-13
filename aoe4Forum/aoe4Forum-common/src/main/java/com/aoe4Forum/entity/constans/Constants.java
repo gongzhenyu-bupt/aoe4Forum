@@ -9,7 +9,9 @@ public class Constants {
 
     public static final Integer TIME_SECOND_WEEK = 60*60*24*7;
 
-    public static final Integer TIME_SECOND_DAY = REDIS_KEY_EXPIRES_ONE_MIN*60*24;
+    public static final Integer TIME_MILLIS_DAY = REDIS_KEY_EXPIRES_ONE_MIN*60*24;
+
+    public static final Integer POST_HOT_FRESH_TIME = REDIS_KEY_EXPIRES_ONE_MIN;
 
     public static final String REDIS_KEY_PREFIX = "aoe4Forum:";
 
@@ -40,4 +42,16 @@ public class Constants {
     public static final Integer NOTICE_MAX_NUM = 60;
 
     public static final String DEFAULT_AVATAR = "C:\\Users\\81595\\Desktop\\all\\avatarImg\\34.jpg";
+
+    public static final String REDIS_POST_INFO = "post:info:";
+
+    public static final String REDIS_POST_COUNT = "post:count:";
+
+    public static final String REDIS_POST_LIST_FORUM = "post:list:forum:";
+
+    public static final String REDIS_POST_LIST_HOT = "post:list:hot";
+
+    public static final String REDIS_POST_CONTENT = "post:content:";
+
+    public static final String REDIS_FORUM_STATUS = "forum:status:";
 }

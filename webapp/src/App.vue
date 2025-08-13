@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <router-view />
+    <CacheStatus />
     <AuthModal 
       v-if="showAuthModal" 
       @close="closeAuthModal"
@@ -12,6 +13,7 @@
 <script setup lang="ts">
 import { ref, provide } from 'vue'
 import AuthModal from './components/AuthModal.vue'
+import CacheStatus from './components/CacheStatus.vue'
 
 const showAuthModal = ref(false)
 

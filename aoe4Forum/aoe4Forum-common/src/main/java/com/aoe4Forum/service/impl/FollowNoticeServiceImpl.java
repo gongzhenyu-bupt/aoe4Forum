@@ -47,8 +47,16 @@ public class FollowNoticeServiceImpl extends NoticeService<FollowNotice> {
 
     @Override
     public void insert(FollowNotice notice) {
-        followNoticeMapper.insert(notice);
-        insertToRedis(notice);
+        try {
+            followNoticeMapper.insert(notice);
+            insertToRedis(notice);
+        } catch (Exception e) {
+            // 如果是重复键异常，忽略它
+            if (e.getMessage().contains("Duplicate entry") || e.getMessage().contains("uniq_user_follower")) {
+                // 记录日志但不抛出异常
+                System.out.println("Duplicate follow notice ignored: " + notice.getUserId() + " -> " + notice.getBusinessId());
+            }
+        }
     }
 
     @Override

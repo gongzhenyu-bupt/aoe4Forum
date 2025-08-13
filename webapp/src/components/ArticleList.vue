@@ -2,12 +2,7 @@
   <div class="article-list-page">
     <!-- 顶部导航栏 -->
     <header class="header">
-      <div class="header-container">
-        <div class="logo">
-          <span class="logo-text">NS</span>
-        </div>
-        <TopBar @login-click="showAuthModal = true" />
-      </div>
+      <TopBar @login-click="showAuthModal = true" />
     </header>
 
     <!-- 认证弹窗 -->
@@ -32,20 +27,6 @@
             </div>
           </section>
 
-          <!-- 排序选项 -->
-          <section class="sort-section">
-            <div class="sort-tabs">
-              <button 
-                v-for="sort in sortOptions" 
-                :key="sort.key"
-                :class="['sort-tab', { active: activeSort === sort.key }]"
-                @click="switchSort(sort.key)"
-              >
-                {{ sort.label }}
-              </button>
-            </div>
-          </section>
-
           <!-- 文章列表 -->
           <section class="articles-section">
             <div v-if="loading" class="loading-container">
@@ -65,18 +46,23 @@
                 @click="viewArticle(article)"
               >
                 <div class="article-header">
-                  <div class="author-info">
-                    <div class="author-avatar">
-                      <span>{{ article.userName.charAt(0) }}</span>
-                    </div>
+                                     <div class="author-info">
+                     <div class="author-avatar">
+                       <img 
+                         v-if="article.avatar" 
+                         :src="getAvatarUrlSync(article.avatar)" 
+                         :alt="article.userName"
+                         class="avatar-img"
+                       />
+                       <span v-else>{{ article.userName.charAt(0) }}</span>
+                     </div>
                     <div class="author-details">
                       <span class="author-name">{{ article.userName }}</span>
                       <span class="publish-time">{{ formatTime(article.createTime) }}</span>
                     </div>
                   </div>
                   <div class="article-tags">
-                    <span class="tag vue">Vue.js</span>
-                    <span class="tag spring">SpringBoot</span>
+                    <span v-if="article.forum" class="tag">{{ getForumLabel(article.forum) }}</span>
                     <span v-if="article.status === 1" class="tag featured">置顶</span>
                   </div>
                 </div>
@@ -105,8 +91,9 @@
             </div>
 
             <!-- 加载更多 -->
-            <div v-if="hasMore && !loading" class="load-more">
-              <button class="load-more-btn" @click="loadMore">加载更多</button>
+            <div v-if="!loading" class="load-more">
+              <button v-if="hasMore" class="load-more-btn" @click="loadMore">加载更多</button>
+              <p v-else class="no-more-text">没有更多了</p>
             </div>
           </section>
         </div>
@@ -118,9 +105,6 @@
             <p>点亮人生的每一天</p>
             <button class="welcome-btn" @click="openAuthModal">去登录</button>
           </div>
-          <div v-else class="user-info-card">
-            <div class="user-info-placeholder">用户信息展示区</div>
-          </div>
 
           <!-- 统计信息 -->
           <div class="stats-card">
@@ -128,26 +112,16 @@
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-label">文章</span>
-                <span class="stat-value">171</span>
+                <span class="stat-value">{{ forumStatus?.postCount || 0 }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">评论</span>
-                <span class="stat-value">624</span>
+                <span class="stat-value">{{ forumStatus?.commentCount || 0 }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">访客</span>
-                <span class="stat-value">2216109</span>
+                <span class="stat-value">{{ formatNumber(forumStatus?.viewCount || 0) }}</span>
               </div>
-            </div>
-          </div>
-
-          <!-- 体验加倍 -->
-          <div class="experience-card">
-            <h4>体验加倍</h4>
-            <p>想要您的邮箱/手机号 可以找回密码以及接收南生论坛的消息通知，不错过任何一条消息。</p>
-            <div class="experience-actions">
-              <span class="experience-icon">📧</span>
-              <span class="experience-text">作者榜</span>
             </div>
           </div>
         </aside>
@@ -157,12 +131,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, inject } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import AuthModal from './AuthModal.vue'
-import { getArticlesApi, getProfileApi } from '../utils/api'
+import { getArticlesApi, getProfileApi, getForumStatusApi } from '../utils/api'  // 导入新接口
 import type { Article } from '../types/api'
+import AvatarCache from '../utils/avatarCache'
 
 // 注入全局方法
 const openAuthModal = inject('openAuthModal') as () => void
@@ -176,10 +151,30 @@ const isLogin = ref(false)
 const userInfo = ref<any>({})
 const defaultAvatar = 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png' // 占位头像
 const router = useRouter()
+const forumStatus = ref<any>({})
+
+// 获取论坛统计数据
+const fetchForumStatus = async () => {
+  try {
+    const response = await getForumStatusApi()
+    if (response.code === '0' || response.code === 0) {
+      forumStatus.value = response.data || {}
+    }
+  } catch (error) {
+    console.error('获取论坛统计数据失败:', error)
+  }
+}
+
+// 浏览状态管理
+const browseState = reactive({
+  category: 'all',
+  offset: 0,
+  scrollPosition: 0
+})
 
 // 分页参数
 const pagination = reactive({
-  offset: 0,
+  offset: browseState.offset,
   limit: 10
 })
 
@@ -193,14 +188,7 @@ const categories = [
   { label: '封神榜', forum: 'hall-of-fame' }
 ]
 
-// 排序选项
-const sortOptions = [
-  { key: 'hot', label: '热门' },
-  { key: 'latest', label: '最新' }
-]
-
-const activeCategory = ref(categories[0].forum)
-const activeSort = ref('hot')
+const activeCategory = ref(browseState.category)
 
 // 获取文章列表
 const fetchArticles = async (reset = false) => {
@@ -228,6 +216,8 @@ const fetchArticles = async (reset = false) => {
       }
       
       pagination.offset += newArticles.length
+      
+      // 检查是否还有更多数据
       hasMore.value = newArticles.length === pagination.limit
     }
   } catch (error) {
@@ -237,25 +227,44 @@ const fetchArticles = async (reset = false) => {
   }
 }
 
+// 保存浏览状态
+const saveBrowseState = () => {
+  browseState.category = activeCategory.value
+  browseState.offset = pagination.offset
+  browseState.scrollPosition = window.scrollY
+  sessionStorage.setItem('articleListState', JSON.stringify(browseState))
+}
+
+// 恢复浏览状态
+const restoreBrowseState = () => {
+  const savedState = sessionStorage.getItem('articleListState')
+  if (savedState) {
+    const state = JSON.parse(savedState)
+    browseState.category = state.category || 'all'
+    browseState.offset = state.offset || 0
+    browseState.scrollPosition = state.scrollPosition || 0
+    
+    activeCategory.value = browseState.category
+    pagination.offset = browseState.offset
+  }
+}
+
 // 切换分类
 const switchCategory = (forum: string) => {
   activeCategory.value = forum
-  fetchArticles(true)
-}
-
-// 切换排序
-const switchSort = (sort: string) => {
-  activeSort.value = sort
+  saveBrowseState()
   fetchArticles(true)
 }
 
 // 加载更多
 const loadMore = () => {
   fetchArticles(false)
+  saveBrowseState()
 }
 
 // 查看文章详情
 const viewArticle = (article: Article) => {
+  saveBrowseState()
   router.push(`/post/${article.id}`)
 }
 
@@ -306,6 +315,27 @@ const formatNumber = (num: number) => {
   return num.toString()
 }
 
+// 获取头像URL（使用缓存）
+const getAvatarUrl = async (avatar: string) => {
+  if (!avatar) return defaultAvatar
+  return await AvatarCache.getAvatarUrl(avatar)
+}
+
+// 同步获取头像URL（用于模板）
+const getAvatarUrlSync = (avatar: string) => {
+  if (!avatar) return defaultAvatar
+  // 这里可以添加一个简单的缓存检查，但主要依赖AvatarCache的内部缓存
+  return avatar.startsWith('/defaultImg/') 
+    ? `http://127.0.0.1:7071${avatar}` 
+    : `http://127.0.0.1:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
+}
+
+// 获取板块标签
+const getForumLabel = (forum: string) => {
+  const category = categories.find(c => c.forum === forum)
+  return category ? category.label : forum
+}
+
 async function checkLogin() {
   try {
     const res = await getProfileApi()
@@ -324,10 +354,46 @@ async function checkLogin() {
   }
 }
 
+// 滚动事件处理
+const handleScroll = () => {
+  browseState.scrollPosition = window.scrollY
+  // 节流保存，避免频繁保存
+  clearTimeout((window as any).scrollTimeout)
+  ;(window as any).scrollTimeout = setTimeout(() => {
+    saveBrowseState()
+  }, 100)
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
+  // 获取论坛统计数据
+  fetchForumStatus()
+
+  // 恢复浏览状态
+  restoreBrowseState()
+  
+  // 获取文章列表
   fetchArticles(true)
+  
+  // 检查登录状态
   checkLogin()
+  
+  // 恢复滚动位置
+  nextTick(() => {
+    if (browseState.scrollPosition > 0) {
+      window.scrollTo(0, browseState.scrollPosition)
+    }
+  })
+  
+  // 添加滚动事件监听
+  window.addEventListener('scroll', handleScroll)
+})
+
+// 组件卸载时保存状态
+onUnmounted(() => {
+  saveBrowseState()
+  // 移除滚动事件监听
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -470,43 +536,6 @@ onMounted(() => {
   color: white;
 }
 
-/* 排序选项 */
-.sort-section {
-  margin-bottom: 20px;
-}
-
-.sort-tabs {
-  display: flex;
-  gap: 16px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.sort-tab {
-  background: none;
-  border: none;
-  padding: 12px 0;
-  font-size: 14px;
-  color: #64748b;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s ease;
-}
-
-.sort-tab:hover,
-.sort-tab.active {
-  color: #3b82f6;
-}
-
-.sort-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #3b82f6;
-}
-
 /* 文章列表 */
 .loading-container,
 .empty-container {
@@ -573,6 +602,13 @@ onMounted(() => {
   justify-content: center;
   color: white;
   font-weight: 600;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .author-details {
@@ -677,6 +713,13 @@ onMounted(() => {
   border-color: #cbd5e1;
 }
 
+.no-more-text {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
 /* 侧边栏样式 */
 .sidebar {
   display: flex;
@@ -718,16 +761,15 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
-.stats-card,
-.experience-card {
+.stats-card {
   background: white;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 55px;
 }
 
-.stats-card h4,
-.experience-card h4 {
+.stats-card h4 {
   font-size: 16px;
   color: #1e293b;
   margin-bottom: 16px;
@@ -755,28 +797,6 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-}
-
-.experience-card p {
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-.experience-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.experience-icon {
-  font-size: 16px;
-}
-
-.experience-text {
-  font-size: 14px;
-  color: #64748b;
 }
 
 /* 响应式设计 */
@@ -825,16 +845,5 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.user-info-placeholder {
-  width: 200px;
-  height: 100px;
-  background: #f3f3f3;
-  border: 1px dashed #bbb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #888;
 }
 </style>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aoe4Forum.mapper.ForumStatusMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.aoe4Forum.entity.ForumStatus">
+        <result column="post_count" property="postCount" jdbcType="BIGINT"/>
+        <result column="comment_count" property="commentCount" jdbcType="BIGINT"/>
+        <result column="view_count" property="viewCount" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <!-- 刷新统计状态 - 从实际数据中计算最新的统计信息 -->
+    <select id="getInitStatus" resultMap="BaseResultMap">
+        SELECT
+                (SELECT COUNT(*) FROM post WHERE status = 0) as post_count,
+                (SELECT COUNT(*) FROM comment) as comment_count,
+                (SELECT COALESCE(SUM(page_view_count), 0) FROM post) as view_count
+    </select>
+
+
+    <!-- 查询最新的统计信息 -->
+    <select id="selectLatest" resultMap="BaseResultMap">
+        SELECT *
+        FROM forum_status
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertStatus">
+        INSERT INTO forum_status (post_count, comment_count, view_count) VALUES (#{postCount},#{commentCount},#{viewCount})
+    </insert>
+
+</mapper>

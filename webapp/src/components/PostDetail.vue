@@ -2,12 +2,7 @@
   <div class="post-detail-page">
     <!-- 顶部导航栏 -->
     <header class="header">
-      <div class="header-container">
-        <div class="logo">
-          <span class="logo-text">NS</span>
-        </div>
         <TopBar />
-      </div>
     </header>
     <div class="post-detail-container">
       <!-- 标题 -->
@@ -15,7 +10,7 @@
       <div v-if="post">
         <!-- 用户信息和发帖信息 -->
         <div class="author-info">
-          <img :src="post.userAvatar" class="author-avatar" @click="goToUserCenter(post.userId)" style="cursor:pointer;" />
+          <img :src="getAvatarUrl(post.avatar)" class="author-avatar" @click="goToUserCenter(post.userId)" style="cursor:pointer;" />
           <div class="author-meta">
             <div class="author-name">{{ post.userName }}</div>
             <div class="post-date">{{ post.createTime }}</div>
@@ -33,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TopBar from './TopBar.vue'
 import { getPostDetailApi, getPostBaseInfoApi } from '../utils/api'
@@ -47,6 +42,43 @@ const postContent = ref('')
 const postId = Number(route.params.id)
 const myUserId = 1 // 实际应通过登录信息获取
 const router = useRouter()
+
+// 获取头像URL
+const getAvatarUrl = (avatar: string) => {
+  if (!avatar) return 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
+  // 判断是否是默认头像路径
+  if (avatar.startsWith('/defaultImg/')) {
+    return `http://127.0.0.1:7071${avatar}`
+  }
+  // 只取文件名，拼接为Spring Boot静态资源URL
+  const filename = avatar.replace(/\\/g, '/').split('/').pop()
+  return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
+}
+
+// 处理评论定位
+const handleCommentFocus = () => {
+  const commentId = route.query.commentId
+  if (commentId) {
+    // 等待组件渲染完成后滚动到评论区域
+    nextTick(() => {
+      const commentSection = document.querySelector('.comment-section')
+      if (commentSection) {
+        commentSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        
+        // 高亮目标评论
+        setTimeout(() => {
+          const targetComment = document.querySelector(`[data-comment-id="${commentId}"]`)
+          if (targetComment) {
+            targetComment.classList.add('highlight-comment')
+            setTimeout(() => {
+              targetComment.classList.remove('highlight-comment')
+            }, 3000)
+          }
+        }, 500)
+      }
+    })
+  }
+}
 
 onMounted(async () => {
   // 获取基本信息
@@ -64,6 +96,21 @@ onMounted(async () => {
   if (contentRes.code === 0 || contentRes.code === '0') {
     postContent.value = contentRes.data.content || ''
   }
+  
+  // 处理评论定位
+  handleCommentFocus()
+
+  // 动态移除图片内联宽度
+  nextTick(() => {
+    const imgs = document.querySelectorAll('.post-content img');
+    imgs.forEach(img => {
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+      img.style.width = '';
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+    });
+  });
 })
 
 function goToUserCenter(userid: number|string) {
@@ -161,5 +208,11 @@ function refreshPostInfo() {
   line-height: 1.8;
   text-align: left;
   margin-bottom: 48px;
+}
+.post-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 12px auto;
 }
 </style> 

@@ -53,6 +53,25 @@ export async function getArticlesApi(params: ArticleListParams): Promise<Article
   })
 }
 
+// 获取热门帖子API
+export async function getHotArticlesApi(page: number): Promise<ArticleListResponse> {
+  return request(`/community/queryPostByHot?page=${page}`, {
+    method: 'GET',
+  })
+}
+
+// 获取最新文章API（用于首页侧边栏）
+export async function getLatestArticlesApi(limit: number = 3): Promise<ArticleListResponse> {
+  return request('/community/queryPostByForum', {
+    method: 'POST',
+    body: JSON.stringify({
+      forum: 'all',
+      offset: 0,
+      limit: limit
+    }),
+  })
+}
+
 // 获取当前用户信息API
 export async function getProfileApi(): Promise<ApiResponse> {
   return request('/account/profile', {
@@ -82,7 +101,7 @@ export async function getCommentsByPostIdApi(postId: number, offset = 0, limit =
 }
 
 // 发表评论API
-export async function createCommentApi(data: { postId: number; content: string; parentId?: number; repliedUserId?: number; repliedUsername?: string }): Promise<any> {
+export async function createCommentApi(data: { postId: number; content: string; parentId?: number; repliedUserId?: number; repliedUsername?: string; token?: string }): Promise<any> {
   return request('/community/createComment', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -113,17 +132,38 @@ export async function getCommentsByParentIdsApi(parentIds: number[]): Promise<{ 
 
 // 上传头像API
 export async function uploadAvatarApi(file: File): Promise<any> {
-  const formData = new FormData();
-  formData.append('multipartFile', file);
+  const formData = new FormData()
+  formData.append('file', file)
+  
   const response = await fetch(`${API_BASE_URL}/account/uploadAvatar`, {
     method: 'POST',
     body: formData,
-    credentials: 'include',
-  });
+    credentials: 'include'
+  })
+
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
-  return response.json();
+
+  return response.json()
+}
+
+// 上传图片API（用于发帖）
+export async function uploadImageApi(file: File): Promise<any> {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include'
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
 }
 
 // 确认更换头像API
@@ -284,8 +324,42 @@ export async function getFollowNoticesApi(params: { userId: number, lastId?: num
 
 // 点赞/点踩帖子API
 export async function likePostApi(params: { postId: number, type: number}): Promise<any> {
-  const query = `postId=${params.postId}&type=${params.type}`
-  return request(`/community/likePost?${query}`, {
+  return request(`/community/likePost?postId=${params.postId}&type=${params.type}`, {
+    method: 'GET',
+  })
+}
+
+// 评论点赞API（最小改动接入）
+export async function likeCommentApi(commentId: number): Promise<any> {
+  return request(`/community/likeComment?commentId=${commentId}`, {
+    method: 'GET',
+  })
+}
+
+// 根据评论ID获取评论详情
+export async function getCommentByIdApi(commentId: number): Promise<any> {
+  return request(`/community/getComment?commentId=${commentId}`, {
+    method: 'GET',
+  })
+}
+
+// 查询用户发布的帖子API
+export async function queryPostsByUserIdApi(params: { userId: number, offset?: number, limit?: number }): Promise<any> {
+  const { userId, offset = 0, limit = 10 } = params
+  return request(`/community/queryPostsByUserId?userId=${userId}&offset=${offset}&limit=${limit}`, {
+    method: 'GET',
+  })
+}
+
+// 搜索帖子API
+export async function searchPostsApi(keyword: string): Promise<any> {
+  return request(`/search?keyword=${encodeURIComponent(keyword)}`, {
+    method: 'GET',
+  })
+}
+
+export async function getForumStatusApi(): Promise<any> {
+  return request(`/status`, {
     method: 'GET',
   })
 }

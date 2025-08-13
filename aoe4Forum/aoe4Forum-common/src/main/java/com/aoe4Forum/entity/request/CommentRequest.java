@@ -15,5 +15,5 @@ public class CommentRequest implements CanSetRequestParams {
     private Long parentId;
     private int limit;
     private int offset;
-    private String token;
+    private String token; // 用于获取用户头像
 }

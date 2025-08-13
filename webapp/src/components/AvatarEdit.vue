@@ -1,5 +1,6 @@
 <template>
   <div class="avatar-edit-page">
+  
     <h2>修改头像</h2>
     <div class="avatar-preview">
       <img :src="previewUrl || currentAvatar" alt="头像预览" class="avatar-img" />

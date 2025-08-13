@@ -28,6 +28,10 @@ const props = defineProps<{
 const defaultAvatar = 'https://img1.imgtp.com/2023/07/21/2F1QKQbA.png'
 function getAvatarUrl(avatar: string) {
   if (!avatar) return defaultAvatar
+  // 判断是否是默认头像路径
+  if (avatar.startsWith('/defaultImg/')) {
+    return `http://127.0.0.1:7071${avatar}`
+  }
   const filename = avatar.replace(/\\/g, '/').split('/').pop()
   return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : defaultAvatar
 }

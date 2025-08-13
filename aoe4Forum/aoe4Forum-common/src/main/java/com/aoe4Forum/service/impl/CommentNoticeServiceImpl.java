@@ -23,18 +23,19 @@ public class CommentNoticeServiceImpl extends NoticeService<CommentNotice> {
 
     @Override
     protected String encodeValueForRedis(CommentNotice notice) {
-        return notice.getId() + ":" + notice.getBusinessId();
+        return notice.getId() + ":" + notice.getBusinessId() + ":" + notice.getSenderId() + ":" + notice.getPostId();
     }
 
     @Override
     protected CommentNotice decodeFromRedisValue(String redisValue, double score) throws UnsupportedEncodingException {
         String[] parts = redisValue.split(":");
-        if (parts.length < 3) return null;
+        if (parts.length < 4) return null;
 
         CommentNotice notice = new CommentNotice();
         notice.setId(Long.parseLong(parts[0]));
         notice.setBusinessId(Long.parseLong(parts[1]));
         notice.setSenderId(Long.parseLong(parts[2]));
+        notice.setPostId(Long.parseLong(parts[3]));
         notice.setCreateTime(Instant.ofEpochMilli((long) score).atZone(ZoneId.systemDefault()).toLocalDateTime());
 
         return notice;
@@ -46,6 +47,16 @@ public class CommentNoticeServiceImpl extends NoticeService<CommentNotice> {
         notice.setId(id);
         notice.setCreateTime(createTime);
         notice.setBusinessId(businessId);
+        return notice;
+    }
+    
+    // 新增方法：创建包含帖子ID的通知
+    public CommentNotice createNoticeWithPostId(Long businessId, Long id, LocalDateTime createTime, Long postId) {
+        CommentNotice notice = new CommentNotice();
+        notice.setId(id);
+        notice.setCreateTime(createTime);
+        notice.setBusinessId(businessId);
+        notice.setPostId(postId);
         return notice;
     }
 

@@ -83,6 +83,14 @@ public class UserServiceImpl implements UserService {
         user.setPhoneNo(phoneNo);
         user.setJoinTime(LocalDateTime.now());
         user.setLastLoginTime(LocalDateTime.now());
+        user.setRole(0);
+        user.setFolloweeNums(0);
+        user.setFollowerNums(0);
+        user.setExp(0);
+        // 随机选择一个默认头像
+        String randomAvatar = getRandomDefaultAvatar();
+        user.setAvatar(randomAvatar);
+        
 //        查看是否有重复手机号和用户名
         Map<String,String> dupMap = userMapper.checkDuplicate(user);
         if(dupMap!=null){
@@ -95,6 +103,34 @@ public class UserServiceImpl implements UserService {
         }
         userMapper.insert(user);
         return true;
+    }
+
+    private String getRandomDefaultAvatar() {
+        String[] defaultAvatars = {
+            "abbasid_dynasty.png",
+            "ayyubids.png", 
+            "byzantines.png",
+            "chinese.png",
+            "delhi_sultanate.png",
+            "english.png",
+            "french.png",
+            "holy_roman_empire.png",
+            "house_of_lancaster.png",
+            "japanese.png",
+            "jeanne_darc.png",
+            "knights_templar.png",
+            "malians.png",
+            "mongols.png",
+            "order_of_the_dragon.png",
+            "ottomans.png",
+            "rus.png",
+            "zhu_xis_legacy.png"
+        };
+        
+        // 随机选择一个头像
+        Random random = new Random();
+        int randomIndex = random.nextInt(defaultAvatars.length);
+        return "/defaultImg/" + defaultAvatars[randomIndex];
     }
 
     @Override
@@ -159,6 +195,7 @@ public class UserServiceImpl implements UserService {
         }
         return path;
     }
+
     @Override
     public TokenUserInfoDto confirmAvatar(String path, TokenUserInfoDto tokenUserInfoDto){
         File dir = new File("./avatarImg");
@@ -208,6 +245,7 @@ public class UserServiceImpl implements UserService {
 
         return tokenUserInfoDto;
     }
+
     @Override
     public List<UserInfoDto> batchQueryByIds(List<Long> ids) {
         if (ids.isEmpty()) {
@@ -289,8 +327,6 @@ public class UserServiceImpl implements UserService {
         dto.setExpireTime(null);
         return dto;
     }
-
-
 
     public static String getIpAddress(HttpServletRequest request) {
         String ip = request.getHeader("x-forwarded-for");

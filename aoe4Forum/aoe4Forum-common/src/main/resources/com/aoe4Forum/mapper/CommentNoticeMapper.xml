@@ -10,32 +10,35 @@
         <result property="senderId" column="sender_id"/>
         <result property="businessId" column="business_id"/>
         <result property="createTime" column="create_time"/>
+        <result property="postId" column="post_id"/>
     </resultMap>
 
     <insert id="insert" parameterType="map">
-        INSERT INTO comment_notice (id, user_id, business_id,  create_time,sender_id)
-        VALUES (#{id}, #{userId}, #{businessId}, #{createTime},#{senderId})
+        INSERT INTO comment_notice (id, user_id, business_id,  create_time,sender_id, post_id)
+        VALUES (#{id}, #{userId}, #{businessId}, #{createTime},#{senderId}, #{postId})
     </insert>
 
     <!-- 批量插入 -->
     <insert id="batchInsert" parameterType="map">
-        INSERT INTO comment_notice (id, user_id, business_id, create_time,sender_id)
+        INSERT INTO comment_notice (id, user_id, business_id, create_time,sender_id, post_id)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.id}, #{item.userId}, #{item.businessId},#{item.createTime},#{item.senderId})
+            (#{item.id}, #{item.userId}, #{item.businessId},#{item.createTime},#{item.senderId}, #{item.postId})
         </foreach>
     </insert>
 
     <select id="cursorQuery" resultMap="CommentNoticeResultMap">
-        SELECT * FROM comment_notice
-        WHERE user_id = #{request.userId}
+        SELECT cn.*, c.post_id 
+        FROM comment_notice cn
+        LEFT JOIN comment c ON cn.business_id = c.comment_id
+        WHERE cn.user_id = #{request.userId}
         <if test="request.lastCreateTime != null and request.lastId != null">
             AND (
-            create_time &lt; #{request.lastCreateTime}
-            OR (create_time = #{request.lastCreateTime} AND id &lt; #{request.lastId})
+            cn.create_time &lt; #{request.lastCreateTime}
+            OR (cn.create_time = #{request.lastCreateTime} AND cn.id &lt; #{request.lastId})
             )
         </if>
-        ORDER BY create_time DESC, id DESC
+        ORDER BY cn.create_time DESC, cn.id DESC
         LIMIT #{request.pageSize}
     </select>
 

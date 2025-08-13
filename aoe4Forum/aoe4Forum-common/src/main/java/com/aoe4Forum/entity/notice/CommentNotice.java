@@ -7,4 +7,5 @@ import lombok.EqualsAndHashCode;
 @Data
 public class CommentNotice extends Notice{
     Long senderId;
+    Long postId; // 添加帖子ID字段
 }

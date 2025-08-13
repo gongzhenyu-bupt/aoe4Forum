@@ -13,4 +13,11 @@ public interface LikeNoticeMapper {
     List<LikeNotice> cursorQuery(@Param("request") NoticeCursorPageRequest request);
 
     void insert(LikeNotice notice);
+
+    Boolean QueryIds(
+            @Param("senderId") Long senderId,
+            @Param("businessType") String businessType,
+            @Param("userId") Long userId,
+            @Param("businessId") Long businessId
+    );
 }

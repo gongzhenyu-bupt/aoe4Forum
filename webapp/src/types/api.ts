@@ -33,6 +33,7 @@ export interface Article {
   uuid: string
   userId: number
   userName: string
+  avatar?: string // 用户头像
   forum: string
   title: string
   createTime: string
@@ -47,9 +48,10 @@ export interface Article {
 }
 
 export interface ArticleListParams {
-  forum: string
-  offset: number
-  limit: number
+  forum?: string
+  offset?: number
+  limit?: number
+  page?: number
 }
 
 export interface ArticleListResponse {
@@ -76,4 +78,21 @@ export interface FollowQueryResult {
   followers: FollowUserInfo[]
   lastCreateTime: string
   lastId: number
+}
+
+export interface Comment {
+  commentId: number
+  postId: number
+  parentId: number
+  commentTime: string
+  likeCount: number
+  content: string
+  status: number
+  username: string
+  userId: number
+  avatar?: string // 用户头像
+  repliedUsername?: string
+  repliedUserId?: number
+  childCount: number
+  childComments?: Comment[]
 }

@@ -4,11 +4,25 @@
       <nav class="nav">
         <a :class="['nav-link', { active: currentRoute === '/' }]" @click="goHome">首页</a>
         <a :class="['nav-link', { active: currentRoute === '/articles' }]" @click="goArticles">文章</a>
-        <a :class="['nav-link', { active: currentRoute === '/qa' }]" @click="goQA">问答</a>
+
         <a :class="['nav-link', { active: currentRoute === '/trends' }]" @click="goTrends">动态</a>
       </nav>
       <button v-if="!isLogin" class="login-btn" @click="emitLoginClick">登录</button>
       <div v-else class="user-actions">
+        <!-- 搜索栏 -->
+        <div class="search-container">
+          <input 
+            v-model="searchKeyword" 
+            type="text" 
+            placeholder="搜索帖子..." 
+            class="search-input"
+            @keyup.enter="handleSearch"
+          />
+          <button class="search-btn" @click="handleSearch">
+            <img src="../assets/search_token.png" alt="搜索" width="20" height="20" />
+          </button>
+        </div>
+        
         <div class="user-avatar" @click="toggleDropdown" tabindex="0" @blur="closeDropdown">
           <img :src="avatarUrl" alt="用户头像" class="avatar-img" />
           <div class="user-dropdown" v-show="dropdownVisible">
@@ -32,6 +46,7 @@
 import { useUserStore } from '../store/user'
 import { getProfileApi } from '../utils/api'
 import { logoutApi } from '../utils/api'
+import { searchPostsApi } from '../utils/api'
 import { onMounted, defineEmits, computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getCookie, deleteCookie } from '../utils/cookie'
@@ -45,9 +60,27 @@ const currentRoute = computed(() => route.path)
 const avatarUrl = ref('')
 const DEFAULT_AVATAR = '/default-avatar.png' // 你可以放一张默认头像在 public 目录
 const dropdownVisible = ref(false)
+const searchKeyword = ref('') // 搜索关键词
 
 const token = getCookie('token')
 const isLogin = computed(() => !!token)
+
+// 搜索处理函数
+async function handleSearch() {
+  if (!searchKeyword.value.trim()) {
+    return
+  }
+  
+  try {
+    // 直接跳转到搜索结果页面，让搜索结果页面处理搜索逻辑
+    const keyword = searchKeyword.value.trim()
+    router.push(`/search?keyword=${encodeURIComponent(keyword)}`)
+    // 清空搜索框
+    searchKeyword.value = ''
+  } catch (error) {
+    console.error('搜索出错:', error)
+  }
+}
 
 function emitLoginClick() {
   emit('login-click')
@@ -59,9 +92,7 @@ function goHome() {
 function goArticles() {
   if (route.path !== '/articles') router.push('/articles')
 }
-function goQA() {
-  if (route.path !== '/qa') router.push('/qa')
-}
+
 function goTrends() {
   if (route.path !== '/trends') router.push('/trends')
 }
@@ -96,6 +127,10 @@ async function goUserCenter() {
 function getImageUrl(path: string): string {
   if (!path) return DEFAULT_AVATAR
   if (/^https?:\/\//.test(path)) return path
+  // 判断是否是默认头像路径
+  if (path.startsWith('/defaultImg/')) {
+    return `http://127.0.0.1:7071${path}`
+  }
   const filename = path.replace(/\\/g, '/').split('/').pop()
   return filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : DEFAULT_AVATAR
 }
@@ -208,9 +243,59 @@ onMounted(() => {
 .user-actions {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
+
+/* 搜索栏样式 */
+.search-container {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 4px;
+  transition: all 0.2s ease;
+}
+
+.search-container:focus-within {
+  background: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #374151;
+  outline: none;
+  min-width: 200px;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-btn {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.search-btn:hover {
+  background: #f1f5f9;
+}
+
 .create-post-btn {
-  margin-left: 8px;
+  margin-left: 0;
   background: #3b82f6;
   color: #fff;
   border: none;

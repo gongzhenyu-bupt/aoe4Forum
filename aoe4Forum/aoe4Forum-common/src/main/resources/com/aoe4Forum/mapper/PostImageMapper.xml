@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aoe4Forum.mapper.PostImageMapper">
+
+    <!-- 插入图片记录 -->
+    <insert id="insert" parameterType="com.aoe4Forum.entity.PostImage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post_images
+            (post_id, image_url, file_name,  upload_time)
+        VALUES
+            (#{postId}, #{imageUrl}, #{fileName}, #{uploadTime})
+    </insert>
+
+    <!-- 根据帖子ID查询图片列表 -->
+    <select id="queryByPostId" parameterType="long" resultType="com.aoe4Forum.entity.PostImage">
+        SELECT id, post_id, image_url, file_name, upload_time
+        FROM post_images
+        WHERE post_id = #{postId}
+        ORDER BY id ASC
+    </select>
+
+</mapper>
