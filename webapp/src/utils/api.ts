@@ -133,8 +133,7 @@ export async function getCommentsByParentIdsApi(parentIds: number[]): Promise<{ 
 // 上传头像API
 export async function uploadAvatarApi(file: File): Promise<any> {
   const formData = new FormData()
-  formData.append('file', file)
-  
+  formData.append('multipartFile', file)
   const response = await fetch(`${API_BASE_URL}/account/uploadAvatar`, {
     method: 'POST',
     body: formData,
@@ -168,12 +167,16 @@ export async function uploadImageApi(file: File): Promise<any> {
 
 // 确认更换头像API
 export async function confirmAvatarApi(path: string, id: number): Promise<any> {
-  return request('/account/confirmAvatar', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ path, id: id.toString() }).toString(),
+  // 1. 用 URLSearchParams 处理参数（自动编码特殊字符，避免路径错误）
+  const params = new URLSearchParams({
+    path: path,
+    id: id.toString() // 确保 id 是字符串类型，符合 URL 参数格式
+  });
+  // 2. 用 GET 方法，参数拼在 URL 后
+  return request(`/account/confirmAvatar?${params.toString()}`, {
+    method: 'GET', // 关键：与后端 @GetMapping 匹配
+    credentials: 'include' // 保留，确保携带 Cookie（如登录态）
+    // 3. 删除 POST 相关的 Content-Type（GET 不需要该头）
   })
 }
 
