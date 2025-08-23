@@ -7,9 +7,8 @@
       <div class="auth-card">
         <!-- 标题 -->
         <div class="auth-header">
-          <h2 class="auth-title">{{ isLogin ? '登录' : '注册' }}</h2>
+          <h2 class="auth-title">{{ isLogin ? '登录 ' : '注册' }}</h2>
         </div>
-
         <!-- 表单内容 -->
         <form @submit.prevent="handleSubmit" class="auth-form">
           <!-- 用户昵称输入（仅注册时显示） -->
@@ -43,14 +42,6 @@
           <div class="form-group">
             <div class="password-header">
               <label class="form-label">密码</label>
-              <a
-                v-if="isLogin"
-                href="#"
-                class="forgot-password"
-                @click.prevent="handleForgotPassword"
-              >
-                忘记密码？
-              </a>
             </div>
             <input
               v-model="formData.password"
@@ -106,35 +97,6 @@
               </div>
             </div>
           </div>
-
-          <!-- 登录时的记住我选项 -->
-          <div v-if="isLogin" class="form-options">
-            <label class="checkbox-label">
-              <input
-                v-model="formData.rememberMe"
-                type="checkbox"
-                class="checkbox-input"
-              />
-              <span class="checkbox-text">记住我</span>
-            </label>
-          </div>
-
-          <!-- 注册时的协议同意选项 -->
-          <div v-if="!isLogin" class="form-options">
-            <label class="checkbox-label">
-              <input
-                v-model="formData.agreeTerms"
-                type="checkbox"
-                class="checkbox-input"
-                required
-              />
-              <span class="checkbox-text">
-                注册即代表同意
-                <a href="#" class="terms-link" @click.prevent="showTerms">服务条款</a>
-              </span>
-            </label>
-          </div>
-
           <!-- 错误信息显示 -->
           <div v-if="errorMessage" class="error-message global-error">
             {{ errorMessage }}
@@ -397,11 +359,6 @@ const handleForgotPassword = () => {
   alert('忘记密码功能待实现')
 }
 
-// 显示服务条款
-const showTerms = () => {
-  alert('服务条款内容')
-}
-
 // 监听模式切换，重置表单
 watch(isLogin, () => {
   // 保留手机号，清空其他字段
@@ -535,6 +492,7 @@ onMounted(() => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 4px;
+  text-align: left !important;
 }
 
 .password-header {
@@ -630,6 +588,7 @@ onMounted(() => {
 
 .form-options {
   margin: 8px 0;
+  text-align: left !important;
 }
 
 .checkbox-label {
@@ -639,6 +598,7 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   color: #4b5563;
+  justify-content: flex-start;
 }
 
 .checkbox-input {
@@ -680,7 +640,7 @@ onMounted(() => {
   border: 1px solid #bbf7d0;
   border-radius: 8px;
   padding: 12px;
-  text-align: center;
+  text-align: left !important;
 }
 
 .submit-button {
@@ -730,7 +690,7 @@ onMounted(() => {
 }
 
 .auth-switch {
-  text-align: center;
+  text-align: left !important;
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid #e5e7eb;
