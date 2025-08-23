@@ -102,6 +102,7 @@
         <aside class="sidebar">
           <div v-if="!isLogin" class="welcome-card">
             <h3>欢迎你好！</h3>
+            <p>点亮人生的每一天</p>
             <button class="welcome-btn" @click="openAuthModal">去登录</button>
           </div>
 
