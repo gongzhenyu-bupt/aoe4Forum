@@ -7,8 +7,9 @@
       <div class="auth-card">
         <!-- 标题 -->
         <div class="auth-header">
-          <h2 class="auth-title">{{ isLogin ? '登录 ' : '注册' }}</h2>
+          <h2 class="auth-title">{{ isLogin ? '登录' : '注册' }}</h2>
         </div>
+
         <!-- 表单内容 -->
         <form @submit.prevent="handleSubmit" class="auth-form">
           <!-- 用户昵称输入（仅注册时显示） -->
@@ -97,6 +98,7 @@
               </div>
             </div>
           </div>
+
           <!-- 错误信息显示 -->
           <div v-if="errorMessage" class="error-message global-error">
             {{ errorMessage }}
@@ -354,10 +356,7 @@ const handleRegister = async () => {
   }
 }
 
-// 忘记密码处理
-const handleForgotPassword = () => {
-  alert('忘记密码功能待实现')
-}
+
 
 // 监听模式切换，重置表单
 watch(isLogin, () => {
@@ -492,7 +491,7 @@ onMounted(() => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 4px;
-  text-align: left !important;
+  text-align: left;
 }
 
 .password-header {
@@ -588,7 +587,6 @@ onMounted(() => {
 
 .form-options {
   margin: 8px 0;
-  text-align: left !important;
 }
 
 .checkbox-label {
@@ -598,7 +596,6 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   color: #4b5563;
-  justify-content: flex-start;
 }
 
 .checkbox-input {
@@ -640,7 +637,7 @@ onMounted(() => {
   border: 1px solid #bbf7d0;
   border-radius: 8px;
   padding: 12px;
-  text-align: left !important;
+  text-align: center;
 }
 
 .submit-button {
@@ -690,7 +687,7 @@ onMounted(() => {
 }
 
 .auth-switch {
-  text-align: left !important;
+  text-align: center;
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid #e5e7eb;
