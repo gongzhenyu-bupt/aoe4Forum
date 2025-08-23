@@ -36,11 +36,11 @@ class AvatarCache {
       
       // 判断是否是默认头像路径
       if (avatar.startsWith('/defaultImg/')) {
-        imageUrl = `http://127.0.0.1:7071${avatar}`
+        imageUrl = `http://www.aoe4forum.cn:7071${avatar}`
       } else {
         // 只取文件名，拼接为Spring Boot静态资源URL
         const filename = avatar.replace(/\\/g, '/').split('/').pop()
-        imageUrl = filename ? `http://127.0.0.1:7071/avatarImg/${filename}` : 'https://dummyimage.com/36x36'
+        imageUrl = filename ? `http://www.aoe4forum.cn:7071/avatarImg/${filename}` : 'https://dummyimage.com/36x36'
       }
       
       // 获取图片并转换为base64

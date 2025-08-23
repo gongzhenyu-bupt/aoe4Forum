@@ -20,9 +20,10 @@ public class ElasticsearchConfig {
     public ElasticsearchClient elasticsearchClient() {
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials("elastic", "7L7sjXlZ6P0Q4y=*TBR3")); // 替换为你的用户名和密码
+                new UsernamePasswordCredentials("elastic", "7L7sjXlZ6P0Q4y=*TBR3")); // 保持原密码不变
  
-        RestClient restClient = RestClient.builder(new HttpHost("localhost", 9200,"https"))
+        // 关键修改：将协议从 "https" 改为 "http"
+        RestClient restClient = RestClient.builder(new HttpHost("localhost", 9200, "http"))
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
                 ).build();

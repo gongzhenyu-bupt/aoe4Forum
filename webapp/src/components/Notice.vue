@@ -180,9 +180,9 @@ function getTabTitle() {
 function getAvatarUrl(avatar: string) {
   if (!avatar) return ''
   if (avatar.startsWith('/defaultImg/')) {
-    return `http://101.126.22.249:7071${avatar}`
+    return `http://www.aoe4forum.cn:7071${avatar}`
   }
-  return `http://101.126.22.249:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
+  return `http://www.aoe4forum.cn:7071/avatarImg/${avatar.replace(/\\/g, '/').split('/').pop()}`
 }
 
 function formatTime(timeStr: string) {

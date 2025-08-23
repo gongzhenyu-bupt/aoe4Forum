@@ -42,11 +42,11 @@ const getAvatarUrl = (avatar: string) => {
   if (!avatar) return defaultAvatar
   // 判断是否是默认头像路径
   if (avatar.startsWith('/defaultImg/')) {
-    return `http://101.126.22.249:7071${avatar}`
+    return `http://www.aoe4forum.cn:7071${avatar}`
   }
   // 只取文件名，拼接为Spring Boot静态资源URL
   const filename = avatar.replace(/\\/g, '/').split('/').pop()
-  return filename ? `http://101.126.22.249:7071/avatarImg/${filename}` : defaultAvatar
+  return filename ? `http://www.aoe4forum.cn:7071/avatarImg/${filename}` : defaultAvatar
 }
 
 const router = useRouter()

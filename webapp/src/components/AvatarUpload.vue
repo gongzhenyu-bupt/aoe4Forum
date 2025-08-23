@@ -41,7 +41,7 @@ function getImageUrl(path: string): string {
   // 如果是本地路径，转换为后端可访问的静态资源路径（假设后端映射了 /static 或 /tempImg）
   // 这里只做简单处理，实际可根据后端静态资源映射规则调整
   const filename = path.replace(/\\/g, '/').split('/').pop()
-  return filename ? `http://101.126.22.249:7071/tempImg/${filename}` : ''
+  return filename ? `http://www.aoe4forum.cn:7071/tempImg/${filename}` : ''
 }
 
 function handleSuccess(response: any) {

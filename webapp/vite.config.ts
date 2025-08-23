@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: true,
-    allowedHosts: ['www.aoe4forum.cn', '101.126.22.249'],
+    allowedHosts: ['www.aoe4forum.cn', '101.126.22.249','aoe4forum.cn'],
     port: 5173
   },
   define: {

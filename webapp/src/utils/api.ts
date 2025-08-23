@@ -2,7 +2,7 @@ import type { LoginRequest, RegisterRequest, CheckCodeResponse, ApiResponse, Art
 import type { FollowCursorPageRequest, FollowQueryResult } from '../types/api'
 
 // API 基础配置
-const API_BASE_URL = 'http://101.126.22.249:7071'
+const API_BASE_URL = 'http://www.aoe4forum.cn:7071'
 
 // 通用请求函数
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
@@ -133,7 +133,7 @@ export async function getCommentsByParentIdsApi(parentIds: number[]): Promise<{ 
 // 上传头像API
 export async function uploadAvatarApi(file: File): Promise<any> {
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('multipartFile', file)
   
   const response = await fetch(`${API_BASE_URL}/account/uploadAvatar`, {
     method: 'POST',
@@ -168,12 +168,15 @@ export async function uploadImageApi(file: File): Promise<any> {
 
 // 确认更换头像API
 export async function confirmAvatarApi(path: string, id: number): Promise<any> {
-  return request('/account/confirmAvatar', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ path, id: id.toString() }).toString(),
+  // 1. 用 URLSearchParams 处理参数（自动编码特殊字符，避免路径错误）
+  const params = new URLSearchParams({
+    path: path,
+    id: id.toString()
+  });
+
+  return request(`/account/confirmAvatar?${params.toString()}`, {
+    method: 'GET', 
+    credentials: 'include'
   })
 }
 

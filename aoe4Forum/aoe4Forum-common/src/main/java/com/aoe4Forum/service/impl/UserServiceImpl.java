@@ -14,7 +14,6 @@ import com.aoe4Forum.utils.CopyUtil;
 import com.aoe4Forum.utils.StringTools;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jdk.nashorn.internal.parser.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -181,7 +180,7 @@ public class UserServiceImpl implements UserService {
         int indexOf = originalName.lastIndexOf(".");
         String suffix = originalName.substring(indexOf);
         String filename = uuid.concat(suffix);
-        File dir = new File("./tempImg");
+        File dir = new File("/root/aoe4Forum/tempImg");
         if (!dir.exists()) {
             dir.mkdirs(); // 创建目录
         }
@@ -198,7 +197,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public TokenUserInfoDto confirmAvatar(String path, TokenUserInfoDto tokenUserInfoDto){
-        File dir = new File("./avatarImg");
+        File dir = new File("/root/aoe4Forum/avatarImg");
         Long id = tokenUserInfoDto.getId();
         StringBuffer sb = new StringBuffer();
         String fileName = String.valueOf(tokenUserInfoDto.getId());
@@ -210,7 +209,7 @@ public class UserServiceImpl implements UserService {
         }
         try{
             sb.append(dir.getCanonicalPath());
-            sb.append("\\");
+            sb.append("/");
             sb.append(fileName);
             sb.append(".");
             sb.append( path.substring(path.lastIndexOf('.') + 1));
