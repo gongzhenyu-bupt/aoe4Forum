@@ -112,7 +112,6 @@
                  <span class="stat-value">{{ userInfo.followerNums || 0 }}</span>
                </div>
              </div>
-             <p v-else>4条人工智能一天</p>
              
              <button v-if="!isLogin" class="welcome-btn" @click="openAuthModal">去登录</button>
              <button v-else class="welcome-btn" @click="goToUserCenter">个人中心</button>
