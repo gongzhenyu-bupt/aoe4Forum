@@ -18,6 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import javax.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.time.LocalDateTime;
@@ -89,7 +93,6 @@ public class UserServiceImpl implements UserService {
         // 随机选择一个默认头像
         String randomAvatar = getRandomDefaultAvatar();
         user.setAvatar(randomAvatar);
-        
 //        查看是否有重复手机号和用户名
         Map<String,String> dupMap = userMapper.checkDuplicate(user);
         if(dupMap!=null){
@@ -101,6 +104,36 @@ public class UserServiceImpl implements UserService {
             }
         }
         userMapper.insert(user);
+        Long userId = user.getId(); // 假设这里能获取到自增的userid
+        try {
+            // 2. 获取随机默认头像
+            String randomDefaultAvatar = getRandomDefaultAvatar();
+
+            // 3. 处理文件复制
+            // 源文件路径（默认头像）
+            Path sourcePath = Paths.get(randomDefaultAvatar);
+
+            // 获取文件扩展名
+            String extension = randomDefaultAvatar.substring(randomDefaultAvatar.lastIndexOf("."));
+
+            // 目标文件路径（新头像路径）
+            String targetAvatarPath = "/root/aoe4Forum/avatarImg/" + userId + extension;
+            Path targetPath = Paths.get(targetAvatarPath);
+
+            // 确保目标目录存在
+            Files.createDirectories(targetPath.getParent());
+
+            // 复制文件
+            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // 4. 更新用户头像路径
+            user.setAvatar(targetAvatarPath);
+            userMapper.updateById(user);
+        } catch (IOException e) {
+            // 处理文件复制失败的情况，可以回滚事务或记录错误日志
+            System.out.println("错误");
+            throw new RuntimeException("头像处理失败", e);
+        }
         return true;
     }
 
@@ -129,7 +162,7 @@ public class UserServiceImpl implements UserService {
         // 随机选择一个头像
         Random random = new Random();
         int randomIndex = random.nextInt(defaultAvatars.length);
-        return "/defaultImg/" + defaultAvatars[randomIndex];
+        return "/root/aoe4Forum/defaultImg/" + defaultAvatars[randomIndex];
     }
 
     @Override
@@ -239,7 +272,9 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
 //        删缓存
         redisComponent.cleanUserInfo(tokenUserInfoDto.getId());
-        redisComponent.cleanToken(tokenUserInfoDto.getToken());
+//        更新缓存
+        tokenUserInfoDto.setAvatar(remPath);
+        redisComponent.saveToken(tokenUserInfoDto);
 
 
         return tokenUserInfoDto;
