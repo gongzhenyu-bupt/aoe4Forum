@@ -52,7 +52,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { getCookie, deleteCookie } from '../utils/cookie'
 
 const user = useUserStore()
-const defaultAvatar = 'https://tse3.mm.bing.net/th/id/OIP.g5M-iZUiocFCi9YAzojtRAAAAA?rs=1&pid=ImgDetMain&o=7&rm=3'
 const emit = defineEmits(['login-click'])
 const router = useRouter()
 const route = useRoute()

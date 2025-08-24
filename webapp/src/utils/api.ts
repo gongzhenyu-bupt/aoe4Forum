@@ -1,5 +1,5 @@
 import type { LoginRequest, RegisterRequest, CheckCodeResponse, ApiResponse, ArticleListParams, ArticleListResponse } from '../types/api'
-import type { FollowCursorPageRequest, FollowQueryResult } from '../types/api'
+import type {  FollowQueryResult } from '../types/api'
 
 // API 基础配置
 const API_BASE_URL = 'http://www.aoe4forum.cn:7071'
@@ -175,7 +175,7 @@ export async function confirmAvatarApi(path: string, id: number): Promise<any> {
   });
 
   return request(`/account/confirmAvatar?${params.toString()}`, {
-    method: 'GET', 
+    method: 'GET',
     credentials: 'include'
   })
 }

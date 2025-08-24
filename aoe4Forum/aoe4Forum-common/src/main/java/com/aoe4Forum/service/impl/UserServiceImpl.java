@@ -11,6 +11,7 @@ import com.aoe4Forum.mapper.UserMapper;
 import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.UserService;
 import com.aoe4Forum.utils.CopyUtil;
+import com.aoe4Forum.utils.ImageConvertUtils;
 import com.aoe4Forum.utils.StringTools;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -103,6 +104,7 @@ public class UserServiceImpl implements UserService {
                 throw new UserAlreadyExistsException("手机号");
             }
         }
+        // 1. 先插入用户获取自增ID
         userMapper.insert(user);
         Long userId = user.getId(); // 假设这里能获取到自增的userid
         try {
@@ -193,7 +195,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String uploadAvatar(MultipartFile file){
+    public String uploadAvatar(MultipartFile file) {
+        // 1. 图片类型校验（保留原有逻辑）
         String contentType = file.getContentType();
         if (contentType == null ||
                 !(contentType.equals("image/jpeg") ||
@@ -202,29 +205,28 @@ public class UserServiceImpl implements UserService {
                         contentType.equals("image/webp"))) {
             throw new ErrorParamsException("图片类型错误");
         }
-        if(file.isEmpty()){
+        if (file.isEmpty()) {
             throw new ErrorParamsException("没有文件");
         }
         String uuid = UUID.randomUUID().toString().replaceAll("-","").toLowerCase();
-        String originalName = file.getOriginalFilename();
-        if(originalName==null || originalName.isEmpty()){
-            throw new ErrorParamsException("文件名错误");
-        }
-        int indexOf = originalName.lastIndexOf(".");
-        String suffix = originalName.substring(indexOf);
-        String filename = uuid.concat(suffix);
+        String filename = uuid + ".png"; // 无论原格式如何，最终文件名都是 .png
         File dir = new File("/root/aoe4Forum/tempImg");
         if (!dir.exists()) {
             dir.mkdirs(); // 创建目录
         }
+
+        // 4. 核心：转换为PNG格式并保存（替换原 file.transferTo() 逻辑）
         String path;
-        try{
+        try {
             String realPath = dir.getCanonicalPath();
-            path = realPath + "/" + filename;
-            file.transferTo(new File(path));
+            path = realPath + "/" + filename; // 目标路径：xxx.png
+
+            // 调用转换工具类，将上传文件转为PNG并保存到目标路径
+            ImageConvertUtils.convertToPngAndSave(file, path);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("文件转换或保存失败：" + e.getMessage(), e);
         }
+
         return path;
     }
 

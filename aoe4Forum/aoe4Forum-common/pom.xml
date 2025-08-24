@@ -153,6 +153,11 @@
             <artifactId>jakarta.json-api</artifactId>
             <version>2.1.2</version>
         </dependency>
-
+        <!-- 图片处理工具：支持格式转换、压缩等 -->
+        <dependency>
+            <groupId>net.coobird</groupId>
+            <artifactId>thumbnailator</artifactId>
+            <version>0.4.19</version> <!-- 截至2024年5月的稳定版 -->
+        </dependency>
     </dependencies>
 </project>
