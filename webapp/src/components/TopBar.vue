@@ -136,11 +136,6 @@ function getImageUrl(path: string): string {
 }
 
 function loadAvatar() {
-  const cachedAvatar = localStorage.getItem('avatar')
-  if (cachedAvatar) {
-    avatarUrl.value = getImageUrl(cachedAvatar)
-    return
-  }
   if (!isLogin.value) {
     avatarUrl.value = DEFAULT_AVATAR
     return
@@ -158,20 +153,6 @@ function loadAvatar() {
   })
 }
 
-async function refreshUserInfo() {
-  try {
-    const res = await getProfileApi()
-    if (res.code === 0 || res.code === '0') {
-      user.setUser(res.data)
-      // 新增：同步userid
-      if (res.data.id) localStorage.setItem('userid', res.data.id)
-    } else {
-      user.logout()
-    }
-  } catch {
-    user.logout()
-  }
-}
 
 async function logout() {
   try {
