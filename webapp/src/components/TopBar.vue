@@ -52,7 +52,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { getCookie, deleteCookie } from '../utils/cookie'
 
 const user = useUserStore()
-const defaultAvatar = 'https://tse3.mm.bing.net/th/id/OIP.g5M-iZUiocFCi9YAzojtRAAAAA?rs=1&pid=ImgDetMain&o=7&rm=3'
 const emit = defineEmits(['login-click'])
 const router = useRouter()
 const route = useRoute()
@@ -136,11 +135,6 @@ function getImageUrl(path: string): string {
 }
 
 function loadAvatar() {
-  const cachedAvatar = localStorage.getItem('avatar')
-  if (cachedAvatar) {
-    avatarUrl.value = getImageUrl(cachedAvatar)
-    return
-  }
   if (!isLogin.value) {
     avatarUrl.value = DEFAULT_AVATAR
     return
@@ -158,20 +152,6 @@ function loadAvatar() {
   })
 }
 
-async function refreshUserInfo() {
-  try {
-    const res = await getProfileApi()
-    if (res.code === 0 || res.code === '0') {
-      user.setUser(res.data)
-      // 新增：同步userid
-      if (res.data.id) localStorage.setItem('userid', res.data.id)
-    } else {
-      user.logout()
-    }
-  } catch {
-    user.logout()
-  }
-}
 
 async function logout() {
   try {

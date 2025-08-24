@@ -1,5 +1,5 @@
 import type { LoginRequest, RegisterRequest, CheckCodeResponse, ApiResponse, ArticleListParams, ArticleListResponse } from '../types/api'
-import type { FollowCursorPageRequest, FollowQueryResult } from '../types/api'
+import type {  FollowQueryResult } from '../types/api'
 
 // API 基础配置
 const API_BASE_URL = 'http://127.0.0.1:7071'
