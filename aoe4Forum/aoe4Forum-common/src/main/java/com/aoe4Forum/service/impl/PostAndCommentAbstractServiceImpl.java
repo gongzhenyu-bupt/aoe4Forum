@@ -39,12 +39,13 @@ public class PostAndCommentAbstractServiceImpl implements PostAndCommentAbstract
                 continue;
             }
         }
+        postIds = postIds.stream().distinct().collect(Collectors.toList());
         // 批量查
         List<Post> posts = Collections.emptyList();
         if (!postIds.isEmpty()) {
             posts = postService.batchQueryPostByIds(postIds);
         }
-
+        commentIds = commentIds.stream().distinct().collect(Collectors.toList());
 // 处理comments查询
         List<Comment> comments = Collections.emptyList();
         if (!commentIds.isEmpty()) {
