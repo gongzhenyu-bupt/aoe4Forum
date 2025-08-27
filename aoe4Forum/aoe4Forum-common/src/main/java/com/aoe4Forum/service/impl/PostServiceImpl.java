@@ -409,15 +409,23 @@ public class PostServiceImpl implements PostService {
         return !Objects.equals(userIdInToken, userId);
     }
 
-    private String getPostAbstract(String content){
-        if(content==null||content.isEmpty()){
+    private String getPostAbstract(String content) {
+        if (content == null || content.isEmpty()) {
             return null;
         }
-        if(content.length()<=100){
+
+        // 使用正则去除 HTML 标签
+        content = content.replaceAll("<[^>]*>", "");  // 去除所有 HTML 标签
+
+        // 如果内容长度小于等于100，则直接返回
+        if (content.length() <= 100) {
             return content;
         }
-        return content.substring(0,100)+"...";
+
+        // 截取前100个字符，并加上省略号
+        return content.substring(0, 100) + "...";
     }
+
     
     @Override
     public List<Post> queryPostsByUserId(Long userId, int offset, int limit) {

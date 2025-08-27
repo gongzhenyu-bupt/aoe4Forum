@@ -49,7 +49,7 @@ public class ImageConvertUtils {
      * 简化重载：默认缩放0.8、质量0.8（兼容原有逻辑）
      */
     public static InputStream convertToPng(MultipartFile file) throws IOException {
-        return convertToPng(file, 0.8f, 0.8f);
+        return convertToPng(file, 0.1f, 0.1f);
     }
 
     /**
@@ -60,8 +60,8 @@ public class ImageConvertUtils {
         try (InputStream originalInputStream = file.getInputStream()) {
             Thumbnails.of(originalInputStream)
                     .outputFormat("png")       // 强制PNG
-                    .scale(0.8f)               // 一次缩放（与convertToPng保持一致）
-                    .outputQuality(0.8f)       // 一次质量压缩
+                    .scale(0.1f)               // 一次缩放（与convertToPng保持一致）
+                    .outputQuality(0.1f)       // 一次质量压缩
                     .toFile(targetPath);        // 直接写入目标文件，减少中间环节
         }
     }

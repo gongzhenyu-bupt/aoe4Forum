@@ -158,13 +158,11 @@ public class AccountController extends ABaseController{
 
     @PostMapping("/uploadAvatar")
     public ResponseVO<Map<String,String>> uploadAvatar(@RequestParam("multipartFile") MultipartFile file) {
-        System.out.println("Received file: " + file.getOriginalFilename() + ", size: " + file.getSize() + " bytes");
         String path = userServiceImpl.uploadAvatar(file);
         if(path==null){
             return ResponseVO.error("401", "上传失败");
         }
         Map<String,String> map = new HashMap<>();
-        System.out.println("Avatar path: " + path);
         map.put("path",path);
         return ResponseVO.success("上传成功",map);
     }

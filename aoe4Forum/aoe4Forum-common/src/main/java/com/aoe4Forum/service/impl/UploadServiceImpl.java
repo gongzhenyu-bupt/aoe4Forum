@@ -37,7 +37,7 @@ public class UploadServiceImpl implements UploadService {
         String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String fileName = UUID.randomUUID().toString() + extension;
 
-        File dir = new File("./tempImg");
+        File dir = new File("/root/aoe4Forum/tempImg");
         if (!dir.exists()) {
             dir.mkdirs(); // 创建目录
         }
@@ -49,7 +49,7 @@ public class UploadServiceImpl implements UploadService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return "/tempImg/"+fileName;
+        return "/root/aoe4Forum/tempImg/"+fileName;
     }
 
 }
