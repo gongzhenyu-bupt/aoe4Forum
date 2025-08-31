@@ -2,6 +2,11 @@
 /aoe4Forum/aoe4Forum-admin/target/
 /aoe4Forum/aoe4Forum-common/target/
 /aoe4Forum/aoe4Forum-web/target/
+
+# 配置文件
+/aoe4Forum/aoe4Forum-web/src/main/resources/application.yml
+
+# 图片资源文件夹
 /avatarImg/
 /defaultImg/
 /tempImg/

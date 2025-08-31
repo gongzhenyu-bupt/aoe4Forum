@@ -3,18 +3,8 @@ import './style.css'
 import App from './App.vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
-import HomePage from './components/HomePage.vue'
-import ArticleList from './components/ArticleList.vue'
-import PostDetail from './components/PostDetail.vue'
-import UserCenter from './components/UserCenter.vue'
-import AvatarEdit from './components/AvatarEdit.vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import FollowList from './components/FollowList.vue'
-import PostCreate from './components/PostCreate.vue'
-import Trends from './components/Trends.vue'
-import Notice from './components/Notice.vue'
-import SearchResults from './components/SearchResults.vue'
 import CacheManager from './utils/cacheManager'
 
 // 启动缓存管理系统
@@ -33,17 +23,18 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+// 路由配置
 const routes = [
-  { path: '/', component: HomePage },
-  { path: '/articles', component: ArticleList },
-  { path: '/post/:id', component: PostDetail },
-  { path: '/:userid', component: UserCenter },
-  { path: '/edit-avatar', component: AvatarEdit },
-  { path: '/follow-list/:userid', component: FollowList },
-  { path: '/create-post', component: PostCreate },
-  { path: '/trends', component: Trends },
-  { path: '/notice', component: Notice },
-  { path: '/search', component: SearchResults },
+  { path: '/', component: () => import('./components/HomePage.vue') },
+  { path: '/articles', component: () => import('./components/ArticleList.vue') },
+  { path: '/post/:id', component: () => import('./components/PostDetail.vue') },
+  { path: '/:userid', component: () => import('./components/UserCenter.vue') },
+  { path: '/edit-avatar', component: () => import('./components/AvatarEdit.vue') },
+  { path: '/follow-list/:userid', component: () => import('./components/FollowList.vue') },
+  { path: '/create-post', component: () => import('./components/PostCreate.vue') },
+  { path: '/trends', component: () => import('./components/Trends.vue') },
+  { path: '/notice', component: () => import('./components/Notice.vue') },
+  { path: '/search', component: () => import('./components/SearchResults.vue') },
 ]
 
 const router = createRouter({
