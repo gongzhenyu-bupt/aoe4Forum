@@ -168,8 +168,7 @@ public class AccountController extends ABaseController{
     }
 
     @GetMapping("/confirmAvatar")
-    public ResponseVO<Map<String,String>> confirmAvatar(@RequestParam("path") String path,
-                                                        @RequestParam("id") Long id
+    public ResponseVO<Map<String,String>> confirmAvatar(@RequestParam("path") String path
                                                         ){
         TokenUserInfoDto tokenUserInfoDto = getTokenFromCookie();
         tokenUserInfoDto = userServiceImpl.confirmAvatar(path, tokenUserInfoDto);

@@ -117,9 +117,8 @@ public class CommunityController extends ABaseController{
         Comment newComment = commentServiceImpl.createComment(commentRequest);
         return ResponseVO.success("评论成功",newComment);
     }
-
-    @GetMapping("/deleteComment")
-    public ResponseVO<Map<String,String>> deleteComment(@RequestParam Long commentId,
+    @PostMapping("/deleteComment")
+    public ResponseVO<Map<String,String>> deleteComment(@RequestBody Long commentId,
                                                         HttpServletRequest request
                                                         ){
         CommentRequest commentRequest = new CommentRequest();

@@ -197,7 +197,6 @@ const isFormValid = computed(() => {
            formData.name && 
            formData.confirmPassword && 
            formData.checkCode && 
-           formData.agreeTerms && 
            !passwordError.value
   }
 })

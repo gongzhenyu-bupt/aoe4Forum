@@ -11,16 +11,20 @@ import com.aoe4Forum.mapper.UserMapper;
 import com.aoe4Forum.redis.RedisUtils;
 import com.aoe4Forum.service.UserService;
 import com.aoe4Forum.utils.CopyUtil;
+import com.aoe4Forum.utils.ImageConvertUtils;
 import com.aoe4Forum.utils.StringTools;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jdk.nashorn.internal.parser.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -101,7 +105,40 @@ public class UserServiceImpl implements UserService {
                 throw new UserAlreadyExistsException("手机号");
             }
         }
+        // 1. 先插入用户获取自增ID
         userMapper.insert(user);
+        Long userId = user.getId(); // 假设这里能获取到自增的userid
+
+        try {
+            // 2. 获取随机默认头像
+            String randomDefaultAvatar = getRandomDefaultAvatar();
+
+            // 3. 处理文件复制
+            // 源文件路径（默认头像）
+            Path sourcePath = Paths.get(randomDefaultAvatar);
+
+            // 获取文件扩展名
+            String extension = randomDefaultAvatar.substring(randomDefaultAvatar.lastIndexOf("."));
+
+            // 目标文件路径（新头像路径）
+            String targetAvatarPath = "/avatarImg/" + userId + extension;
+            Path targetPath = Paths.get("."+targetAvatarPath);
+
+            // 确保目标目录存在
+            Files.createDirectories(targetPath.getParent());
+
+            // 复制文件
+            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // 4. 更新用户头像路径
+            user.setAvatar(targetAvatarPath);
+            userMapper.updateById(user);
+
+        } catch (IOException e) {
+            // 处理文件复制失败的情况，可以回滚事务或记录错误日志
+            System.out.println("错误");
+            throw new RuntimeException("头像处理失败", e);
+        }
         return true;
     }
 
@@ -130,7 +167,7 @@ public class UserServiceImpl implements UserService {
         // 随机选择一个头像
         Random random = new Random();
         int randomIndex = random.nextInt(defaultAvatars.length);
-        return "/defaultImg/" + defaultAvatars[randomIndex];
+        return "./defaultImg/" + defaultAvatars[randomIndex];
     }
 
     @Override
@@ -161,7 +198,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String uploadAvatar(MultipartFile file){
+    public String uploadAvatar(MultipartFile file) {
+        // 1. 图片类型校验（保留原有逻辑）
         String contentType = file.getContentType();
         if (contentType == null ||
                 !(contentType.equals("image/jpeg") ||
@@ -170,29 +208,32 @@ public class UserServiceImpl implements UserService {
                         contentType.equals("image/webp"))) {
             throw new ErrorParamsException("图片类型错误");
         }
-        if(file.isEmpty()){
+        if (file.isEmpty()) {
             throw new ErrorParamsException("没有文件");
         }
+
+        // 2. 生成目标文件名（注意：这里强制使用 .png 后缀）
         String uuid = UUID.randomUUID().toString().replaceAll("-","").toLowerCase();
-        String originalName = file.getOriginalFilename();
-        if(originalName==null || originalName.isEmpty()){
-            throw new ErrorParamsException("文件名错误");
-        }
-        int indexOf = originalName.lastIndexOf(".");
-        String suffix = originalName.substring(indexOf);
-        String filename = uuid.concat(suffix);
+        String filename = uuid + ".png"; // 无论原格式如何，最终文件名都是 .png
+
+        // 3. 确定存储目录
         File dir = new File("./tempImg");
         if (!dir.exists()) {
             dir.mkdirs(); // 创建目录
         }
+
+        // 4. 核心：转换为PNG格式并保存（替换原 file.transferTo() 逻辑）
         String path;
-        try{
+        try {
             String realPath = dir.getCanonicalPath();
-            path = realPath + "/" + filename;
-            file.transferTo(new File(path));
+            path = realPath + "/" + filename; // 目标路径：xxx.png
+
+            // 调用转换工具类，将上传文件转为PNG并保存到目标路径
+            ImageConvertUtils.convertToPngAndSave(file, path);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("文件转换或保存失败：" + e.getMessage(), e);
         }
+
         return path;
     }
 
@@ -240,9 +281,9 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
 //        删缓存
         redisComponent.cleanUserInfo(tokenUserInfoDto.getId());
-        redisComponent.cleanToken(tokenUserInfoDto.getToken());
-
-
+//        更新缓存
+       tokenUserInfoDto.setAvatar(remPath);
+       redisComponent.saveToken(tokenUserInfoDto);
         return tokenUserInfoDto;
     }
 
